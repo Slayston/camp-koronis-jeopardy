@@ -1328,7 +1328,7 @@ document.getElementById('edit-save-btn').onclick = () => {
   // Pine trees in background
   const treeMat = new THREE.MeshLambertMaterial({ color: 0x0d3a0d });
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x2a1505 });
-  [[-3.5,0,-4,1.4,2.2],[3.2,0,-4,1.2,2],[−2,0,-5,1.8,2.8],[2.8,0,-5.5,1.5,2.5],[−4.5,0,-5,1,1.8],[4.5,0,-4.5,1.1,1.9]].forEach(([x,y,z,s,h]) => {
+  [[-3.5,0,-4,1.4,2.2],[3.2,0,-4,1.2,2],[-2,0,-5,1.8,2.8],[2.8,0,-5.5,1.5,2.5],[-4.5,0,-5,1,1.8],[4.5,0,-4.5,1.1,1.9]].forEach(([x,y,z,s,h]) => {
     if (isNaN(x)) return;
     const tree = new THREE.Mesh(new THREE.ConeGeometry(s*0.7, h, 7), treeMat);
     tree.position.set(x, h/2, z);
