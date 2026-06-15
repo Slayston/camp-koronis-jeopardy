@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camp Koronis Jeopardy!</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d2b1a;
+    color: #fff;
+    font-family: 'Georgia', serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Starfield ── */
+  #starfield {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ── */
+  #header {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 0.5rem 1rem 0.5rem;
+    background: linear-gradient(180deg, #0a1a0d 0%, #0d2b1a 100%);
+    border-bottom: 3px solid #d4a017;
+    -webkit-app-region: drag;
+    flex-shrink: 0;
+    padding-top: calc(0.5rem + env(titlebar-area-height, 36px));
+  }
+  #header .camp-name {
+    font-size: clamp(0.8rem, 1.8vw, 1.1rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #7ec87e;
+    font-family: 'Georgia', serif;
+    font-style: normal;
+    text-shadow: 0 0 10px #2a6a2a;
+  }
+  #header h1 {
+    font-size: clamp(1.4rem, 3.5vw, 2.4rem);
+    letter-spacing: 0.08em;
+    color: #f5d252;
+    text-shadow: 0 0 24px #a87800, 0 2px 0 #6b4e00;
+    font-style: italic;
+    line-height: 1.1;
+  }
+  #header p {
+    font-size: 0.78rem;
+    color: #7ec87e;
+    margin-top: 0.15rem;
+    font-family: Arial, sans-serif;
+    -webkit-app-region: no-drag;
+  }
+
+  /* ── Main layout ── */
+  #main {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── Board area ── */
+  #board-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  #board {
+    display: grid;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .cat-cell {
+    background: linear-gradient(180deg, #1a3a8a 0%, #0f2060 100%);
+    border: 2px solid #2a4aaa;
+    border-radius: 5px;
+    padding: 0.5rem 0.4rem;
+    text-align: center;
+    font-size: clamp(0.5rem, 1.1vw, 0.72rem);
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    text-shadow: 0 1px 3px #00000080;
+  }
+
+  .clue-cell {
+    background: linear-gradient(180deg, #1a3a8a 0%, #0f2060 100%);
+    border: 2px solid #2a4aaa;
+    border-radius: 5px;
+    text-align: center;
+    font-size: clamp(0.9rem, 2vw, 1.5rem);
+    font-weight: bold;
+    color: #f5d252;
+    text-shadow: 0 1px 6px #00000080;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+  .clue-cell:hover:not(.used) {
+    background: linear-gradient(180deg, #2a4dcc 0%, #1a35a0 100%);
+    transform: scale(1.03);
+    box-shadow: 0 0 14px #d4a01740;
+  }
+  .clue-cell.used {
+    background: #071a0e;
+    color: #071a0e;
+    cursor: default;
+    border-color: #0f2a18;
+  }
+
+  /* ── Right sidebar ── */
+  #sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: hidden;
+  }
+
+  /* ── 3D Host Panel ── */
+  #host-panel {
+    flex: 1;
+    min-height: 0;
+    background: #0a1a0d;
+    border: 2px solid #2a6a2a;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  #host-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  #host-label {
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.65rem;
+    color: #7ec87e80;
+    font-family: Arial, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* ── Scoreboard ── */
+  #scoreboard {
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #0d1a0d 0%, #0d1550 100%);
+    border: 2px solid #d4a017;
+    border-radius: 8px;
+    padding: 0.65rem;
+  }
+  #scoreboard h2 {
+    text-align: center;
+    font-size: 0.9rem;
+    letter-spacing: 0.12em;
+    color: #f5d252;
+    text-transform: uppercase;
+    border-bottom: 1px solid #d4a017;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 0.4rem;
+    background: #1a2a8a;
+    border-radius: 6px;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  .player-row.active-player {
+    background: #1e3a6e;
+    border-color: #f5d252;
+    box-shadow: 0 0 8px #f5d25230;
+  }
+  .player-name {
+    flex: 1;
+    font-size: 0.75rem;
+    color: #cce;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player-score {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #f5d252;
+    min-width: 50px;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+  }
+  .score-btn {
+    background: none;
+    border: 1px solid #446;
+    border-radius: 3px;
+    color: #aac;
+    cursor: pointer;
+    font-size: 0.7rem;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    -webkit-app-region: no-drag;
+  }
+  .score-btn:hover { background: #2a3aaa; color: #fff; }
+  .del-btn { color: #c66; border-color: #944; }
+  .del-btn:hover { background: #622; color: #faa; }
+
+  #add-player-area { margin-top: 0.6rem; }
+  #add-player-area input {
+    width: 100%;
+    background: #071407;
+    border: 1px solid #2a5a2a;
+    border-radius: 4px;
+    color: #fff;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.75rem;
+    margin-bottom: 0.35rem;
+    font-family: Arial, sans-serif;
+    -webkit-app-region: no-drag;
+  }
+  #add-player-area input::placeholder { color: #4a7a4a; }
+  #add-player-area input:focus { outline: none; border-color: #d4a017; }
+  #add-player-btn {
+    width: 100%;
+    background: linear-gradient(180deg, #d4a017 0%, #a87800 100%);
+    border: none;
+    border-radius: 4px;
+    color: #0d1a0d;
+    font-weight: bold;
+    font-size: 0.75rem;
+    padding: 0.3rem;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    font-family: Arial, sans-serif;
+    -webkit-app-region: no-drag;
+  }
+  #add-player-btn:hover { background: linear-gradient(180deg, #f5d252 0%, #d4a017 100%); }
+
+  #scoreboard-footer {
+    margin-top: 0.6rem;
+    border-top: 1px solid #2a5a2a;
+    padding-top: 0.5rem;
+    font-size: 0.65rem;
+    color: #4a7a4a;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+  }
+
+  /* ── Bottom bar ── */
+  #bottom-bar {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 0.4rem 1rem 0.5rem;
+    flex-shrink: 0;
+  }
+  #reset-btn {
+    background: none;
+    border: 1px solid #2a5a2a;
+    border-radius: 4px;
+    color: #4a7a4a;
+    font-size: 0.7rem;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    -webkit-app-region: no-drag;
+  }
+  #reset-btn:hover { border-color: #c44; color: #c44; }
+
+  /* ── Clue Modal ── */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 10, 5, 0.88);
+    display: none;
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+  }
+  #overlay.open { display: flex; }
+
+  #modal {
+    background: linear-gradient(180deg, #0f2560 0%, #0a1a40 100%);
+    border: 3px solid #d4a017;
+    border-radius: 14px;
+    padding: 2rem 2.2rem;
+    max-width: 720px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 0 60px #d4a01730, 0 0 120px #0a1a4080;
+  }
+  #modal::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #d4a017, #0d2b1a, #d4a017);
+    z-index: -1;
+    opacity: 0.5;
+  }
+  #modal-cat {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #7ec87e;
+    margin-bottom: 0.3rem;
+    font-family: Arial, sans-serif;
+  }
+  #modal-value {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #f5d252;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 20px #a87800;
+  }
+  #modal-clue {
+    font-size: clamp(1rem, 2.3vw, 1.55rem);
+    color: #fff;
+    line-height: 1.55;
+    margin-bottom: 1.4rem;
+    min-height: 3em;
+  }
+  #modal-answer {
+    font-size: clamp(0.95rem, 2vw, 1.35rem);
+    color: #7eff9a;
+    font-weight: bold;
+    margin-bottom: 1.4rem;
+    min-height: 2em;
+    display: none;
+    text-shadow: 0 0 10px #2aff6040;
+  }
+  #modal-answer.visible { display: block; }
+  .modal-answer-label {
+    font-size: 0.65rem;
+    color: #5a9a5a;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.2rem;
+    font-family: Arial, sans-serif;
+  }
+
+  #modal-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+  .modal-btn {
+    padding: 0.5rem 1.2rem;
+    border-radius: 7px;
+    border: 2px solid;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    letter-spacing: 0.03em;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .modal-btn:hover { opacity: 0.85; transform: scale(1.03); }
+  #reveal-btn {
+    background: linear-gradient(180deg, #d4a017 0%, #a87800 100%);
+    border-color: #d4a017;
+    color: #0a1a0d;
+  }
+  #close-btn { background: #1a2a4a; border-color: #446; color: #cce; }
+
+  #award-section { margin-top: 1.1rem; display: none; }
+  #award-section.visible { display: block; }
+  #award-section p { font-size: 0.78rem; color: #7ec87e; margin-bottom: 0.55rem; font-family: Arial, sans-serif; }
+  #award-buttons { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
+  .award-btn {
+    padding: 0.32rem 0.7rem;
+    border-radius: 5px;
+    border: 1px solid #d4a017;
+    background: #0d1550;
+    color: #f5d252;
+    font-size: 0.78rem;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    transition: background 0.15s;
+  }
+  .award-btn:hover { background: #1a2a8a; }
+  .award-btn.correct { border-color: #4c4; color: #4c4; }
+  .award-btn.wrong   { border-color: #c44; color: #c44; }
+
+  /* ── Daily Double ── */
+  #dd-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 8, 3, 0.94);
+    display: none;
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(6px);
+  }
+  #dd-overlay.open { display: flex; }
+  #dd-box {
+    text-align: center;
+    animation: ddPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes ddPop {
+    from { transform: scale(0.2) rotate(-5deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  #dd-box h2 {
+    font-size: clamp(2.8rem, 8vw, 5.5rem);
+    color: #f5d252;
+    text-shadow: 0 0 50px #a87800, 0 0 100px #d4a01760;
+    font-style: italic;
+    letter-spacing: 0.05em;
+  }
+  #dd-box .dd-sub {
+    color: #7ec87e;
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    font-family: Arial, sans-serif;
+  }
+  #dd-box .dd-campfire {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    animation: flicker 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes flicker {
+    from { opacity: 0.8; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1.03); }
+  }
+
+  /* ── Edit btn ── */
+  #edit-btn {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background: #0d1550;
+    border: 1px solid #2a5a2a;
+    color: #4a7a4a;
+    font-size: 0.7rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    z-index: 50;
+    -webkit-app-region: no-drag;
+  }
+  #edit-btn:hover { border-color: #f5d252; color: #f5d252; }
+
+  /* ── Edit modal ── */
+  #edit-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: none;
+    z-index: 300;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 2rem 1rem;
+    backdrop-filter: blur(4px);
+  }
+  #edit-overlay.open { display: flex; }
+  #edit-modal {
+    background: #0a1a0d;
+    border: 2px solid #d4a017;
+    border-radius: 10px;
+    padding: 1.5rem;
+    max-width: 880px;
+    width: 100%;
+    font-family: Arial, sans-serif;
+  }
+  #edit-modal h2 { color: #f5d252; margin-bottom: 1rem; font-size: 1.1rem; }
+  .edit-category-block { margin-bottom: 1.4rem; }
+  .edit-category-block label { font-size: 0.7rem; color: #7ec87e; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.2rem; }
+  .edit-category-block input[type="text"] {
+    width: 100%;
+    background: #071407;
+    border: 1px solid #2a5a2a;
+    border-radius: 4px;
+    color: #fff;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
+  .edit-row { display: grid; grid-template-columns: 60px 1fr 1fr 90px; gap: 6px; align-items: center; margin-bottom: 4px; }
+  .edit-row span { color: #f5d252; font-size: 0.78rem; font-weight: bold; text-align: center; }
+  .edit-row input { background: #071407; border: 1px solid #2a5a2a; border-radius: 4px; color: #fff; padding: 0.28rem 0.4rem; font-size: 0.78rem; width: 100%; }
+  .edit-row select { background: #071407; border: 1px solid #2a5a2a; border-radius: 4px; color: #f5d252; padding: 0.28rem 0.4rem; font-size: 0.72rem; }
+  .edit-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .edit-save-btn { background: linear-gradient(180deg,#d4a017,#a87800); border: none; border-radius: 5px; color: #0a1a0d; font-weight: bold; padding: 0.5rem 1.2rem; cursor: pointer; font-size: 0.88rem; }
+  .edit-save-btn:hover { background: linear-gradient(180deg,#f5d252,#d4a017); }
+  .edit-cancel-btn { background: none; border: 1px solid #2a5a2a; border-radius: 5px; color: #7ec87e; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.88rem; }
+  .edit-col-label { font-size: 0.68rem; color: #4a7a4a; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- Starfield canvas -->
+<canvas id="starfield"></canvas>
+
+<div id="header">
+  <div class="camp-name">&#127795; Camp Koronis &#127795;</div>
+  <h1>Jeopardy!</h1>
+  <p id="subtitle">Click a dollar amount to begin &nbsp;&mdash;&nbsp; click a player name to set as active</p>
+</div>
+
+<div id="main">
+  <div id="board-wrap">
+    <div id="board"></div>
+  </div>
+  <div id="sidebar">
+    <div id="host-panel">
+      <canvas id="host-canvas"></canvas>
+      <div id="host-label">Camp Host</div>
+    </div>
+    <div id="scoreboard">
+      <h2>Scoreboard</h2>
+      <div id="player-list"></div>
+      <div id="add-player-area">
+        <input type="text" id="player-name-input" placeholder="Player / team name" maxlength="24" />
+        <button id="add-player-btn">+ Add Player</button>
+      </div>
+      <div id="scoreboard-footer">
+        Click a player name<br>to mark them active
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="bottom-bar">
+  <button id="reset-btn">Reset Board</button>
+</div>
+
+<!-- Clue Modal -->
+<div id="overlay">
+  <div id="modal">
+    <div id="modal-cat"></div>
+    <div id="modal-value"></div>
+    <div id="modal-clue"></div>
+    <div id="modal-answer">
+      <div class="modal-answer-label">Answer</div>
+      <span id="answer-text"></span>
+    </div>
+    <div id="modal-actions">
+      <button class="modal-btn" id="reveal-btn">Reveal Answer</button>
+      <button class="modal-btn" id="close-btn">Close</button>
+    </div>
+    <div id="award-section">
+      <p>Award or deduct points:</p>
+      <div id="award-buttons"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Daily Double Splash -->
+<div id="dd-overlay">
+  <div id="dd-box">
+    <div class="dd-campfire">&#128293;</div>
+    <h2>Daily Double!</h2>
+    <p class="dd-sub">Click anywhere to continue</p>
+  </div>
+</div>
+
+<!-- Edit Button -->
+<button id="edit-btn">Edit Questions</button>
+
+<!-- Edit Modal -->
+<div id="edit-overlay">
+  <div id="edit-modal">
+    <h2>Edit Categories &amp; Questions</h2>
+    <div id="edit-form"></div>
+    <div class="edit-actions">
+      <button class="edit-save-btn" id="edit-save-btn">Save &amp; Apply</button>
+      <button class="edit-cancel-btn" id="edit-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Starfield ──
+(function() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function initStars(n) {
+    stars = [];
+    for (let i = 0; i < n; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.2 + 0.2,
+        alpha: Math.random() * 0.7 + 0.1,
+        speed: Math.random() * 0.3 + 0.05,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t += 0.012;
+    stars.forEach(s => {
+      const a = s.alpha * (0.6 + 0.4 * Math.sin(t * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,230,200,${a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resize(); initStars(200); });
+  resize();
+  initStars(200);
+  draw();
+})();
+
+// ── Three.js Campfire ──
+(function() {
+  const panel = document.getElementById('host-panel');
+  const canvas = document.getElementById('host-canvas');
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0x0a1a0d, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a1a0d, 0.18);
+
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+  camera.position.set(0, 1.4, 3.5);
+  camera.lookAt(0, 0.4, 0);
+
+  // Ground
+  const groundGeo = new THREE.CircleGeometry(2.5, 32);
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x0d1a08 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.01;
+  scene.add(ground);
+
+  // Log pile — two crossing cylinders
+  const logMat = new THREE.MeshLambertMaterial({ color: 0x3a2010 });
+  function makeLog(rx, ry, rz) {
+    const geo = new THREE.CylinderGeometry(0.08, 0.1, 0.9, 8);
+    const m = new THREE.Mesh(geo, logMat);
+    m.rotation.set(rx, ry, rz);
+    m.position.y = 0.06;
+    return m;
+  }
+  scene.add(makeLog(0, 0, Math.PI / 2));
+  scene.add(makeLog(0, Math.PI / 2, Math.PI / 2));
+
+  // Flame cone
+  const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.85 });
+  const flameCone = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.7, 8), flameMat);
+  flameCone.position.y = 0.45;
+  scene.add(flameCone);
+
+  const innerFlameMat = new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0.9 });
+  const innerFlame = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.5, 8), innerFlameMat);
+  innerFlame.position.y = 0.45;
+  scene.add(innerFlame);
+
+  // Embers — small glowing spheres
+  const embers = [];
+  const emberMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+  for (let i = 0; i < 14; i++) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), emberMat);
+    const angle = Math.random() * Math.PI * 2;
+    const rad = Math.random() * 0.5;
+    e.position.set(Math.cos(angle) * rad, 0.3 + Math.random() * 1.0, Math.sin(angle) * rad);
+    e.userData = {
+      angle, speed: 0.5 + Math.random() * 1.5,
+      rise: 0.004 + Math.random() * 0.008,
+      startY: e.position.y,
+      maxY: e.position.y + 0.6 + Math.random() * 0.6,
+      phase: Math.random() * Math.PI * 2
+    };
+    embers.push(e);
+    scene.add(e);
+  }
+
+  // Point light (flickering fire)
+  const fireLight = new THREE.PointLight(0xff6600, 2.5, 4);
+  fireLight.position.set(0, 0.7, 0);
+  scene.add(fireLight);
+
+  // Ambient
+  const ambient = new THREE.AmbientLight(0x0a1a0d, 1.2);
+  scene.add(ambient);
+
+  // Trees in background — simple cone+cylinder silhouettes
+  const treeMat = new THREE.MeshLambertMaterial({ color: 0x0d2a10 });
+  function makeTree(x, z, h) {
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, h * 0.3, 6), treeMat);
+    trunk.position.y = h * 0.15;
+    const top = new THREE.Mesh(new THREE.ConeGeometry(h * 0.22, h * 0.8, 7), treeMat);
+    top.position.y = h * 0.6;
+    g.add(trunk, top);
+    g.position.set(x, 0, z);
+    return g;
+  }
+  [[-1.8, -1.2, 1.4], [1.9, -1.0, 1.6], [-2.2, -0.5, 1.2], [2.4, -0.4, 1.3],
+   [-1.2, -2.0, 1.5], [1.3, -2.1, 1.7]].forEach(([x, z, h]) => scene.add(makeTree(x, z, h)));
+
+  // Stars in scene background
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = [];
+  for (let i = 0; i < 120; i++) {
+    const theta = Math.random() * Math.PI;
+    const phi = Math.random() * Math.PI * 2;
+    const r = 8 + Math.random() * 4;
+    starPos.push(r * Math.sin(theta) * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta));
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xaaffaa, size: 0.05, transparent: true, opacity: 0.8 });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  function resizeRenderer() {
+    const w = panel.clientWidth;
+    const h = panel.clientHeight;
+    if (w > 0 && h > 0) {
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  const ro = new ResizeObserver(resizeRenderer);
+  ro.observe(panel);
+  resizeRenderer();
+
+  let frame = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    frame++;
+    const t = frame * 0.04;
+
+    // Flicker flame
+    const flicker = 0.85 + 0.15 * Math.sin(t * 7.3) + 0.07 * Math.sin(t * 13.1);
+    flameCone.scale.set(flicker, 0.9 + 0.1 * Math.sin(t * 5.2), flicker);
+    flameCone.position.y = 0.45 + 0.03 * Math.sin(t * 6);
+    innerFlame.scale.set(flicker * 0.9, 0.95 + 0.05 * Math.sin(t * 8), flicker * 0.9);
+
+    fireLight.intensity = 2.2 + 0.6 * Math.sin(t * 11) + 0.3 * Math.sin(t * 7.5);
+    fireLight.color.setHSL(0.06 + 0.02 * Math.sin(t * 3), 1, 0.5);
+
+    // Embers float up and reset
+    embers.forEach(e => {
+      e.position.y += e.userData.rise;
+      e.position.x += 0.002 * Math.sin(t * e.userData.speed + e.userData.phase);
+      const fade = 1 - (e.position.y - e.userData.startY) / (e.userData.maxY - e.userData.startY);
+      e.material.opacity = Math.max(0, fade);
+      if (e.position.y > e.userData.maxY) {
+        const angle = Math.random() * Math.PI * 2;
+        const rad = Math.random() * 0.3;
+        e.position.set(Math.cos(angle) * rad, 0.3 + Math.random() * 0.2, Math.sin(angle) * rad);
+        e.userData.startY = e.position.y;
+        e.userData.maxY = e.position.y + 0.6 + Math.random() * 0.5;
+      }
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+
+// ── Default Game Data ──
+const DEFAULT_DATA = {
+  categories: [
+    {
+      name: "Camp History",
+      clues: [
+        { q: "This is a sample clue for 200 points. Replace this with your own question.", a: "Sample Answer", dd: false },
+        { q: "This is a sample clue for 400 points.", a: "Sample Answer", dd: false },
+        { q: "This is a sample clue for 600 points.", a: "Sample Answer", dd: true },
+        { q: "This is a sample clue for 800 points.", a: "Sample Answer", dd: false },
+        { q: "This is a sample clue for 1000 points.", a: "Sample Answer", dd: false },
+      ]
+    },
+    {
+      name: "Safety Rules",
+      clues: [
+        { q: "Sample 200-point question about safety.", a: "Sample Answer", dd: false },
+        { q: "Sample 400-point question about safety.", a: "Sample Answer", dd: false },
+        { q: "Sample 600-point question about safety.", a: "Sample Answer", dd: false },
+        { q: "Sample 800-point question about safety.", a: "Sample Answer", dd: false },
+        { q: "Sample 1000-point question about safety.", a: "Sample Answer", dd: true },
+      ]
+    },
+    {
+      name: "Policies & Procedures",
+      clues: [
+        { q: "Sample 200-point policy question.", a: "Sample Answer", dd: false },
+        { q: "Sample 400-point policy question.", a: "Sample Answer", dd: false },
+        { q: "Sample 600-point policy question.", a: "Sample Answer", dd: false },
+        { q: "Sample 800-point policy question.", a: "Sample Answer", dd: false },
+        { q: "Sample 1000-point policy question.", a: "Sample Answer", dd: false },
+      ]
+    },
+    {
+      name: "Team & Roles",
+      clues: [
+        { q: "Sample 200-point team question.", a: "Sample Answer", dd: false },
+        { q: "Sample 400-point team question.", a: "Sample Answer", dd: false },
+        { q: "Sample 600-point team question.", a: "Sample Answer", dd: false },
+        { q: "Sample 800-point team question.", a: "Sample Answer", dd: false },
+        { q: "Sample 1000-point team question.", a: "Sample Answer", dd: false },
+      ]
+    },
+    {
+      name: "Guest Experience",
+      clues: [
+        { q: "Sample 200-point guest-experience question.", a: "Sample Answer", dd: false },
+        { q: "Sample 400-point guest-experience question.", a: "Sample Answer", dd: false },
+        { q: "Sample 600-point guest-experience question.", a: "Sample Answer", dd: false },
+        { q: "Sample 800-point guest-experience question.", a: "Sample Answer", dd: true },
+        { q: "Sample 1000-point guest-experience question.", a: "Sample Answer", dd: false },
+      ]
+    },
+    {
+      name: "Miscellaneous",
+      clues: [
+        { q: "Sample 200-point misc question.", a: "Sample Answer", dd: false },
+        { q: "Sample 400-point misc question.", a: "Sample Answer", dd: false },
+        { q: "Sample 600-point misc question.", a: "Sample Answer", dd: false },
+        { q: "Sample 800-point misc question.", a: "Sample Answer", dd: false },
+        { q: "Sample 1000-point misc question.", a: "Sample Answer", dd: false },
+      ]
+    },
+  ]
+};
+
+const VALUES = [200, 400, 600, 800, 1000];
+
+// ── State ──
+let gameData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+let usedCells = {};
+let players = [];
+let activePlayer = null;
+let currentClue = null;
+
+// ── Storage ──
+function save() {
+  try {
+    localStorage.setItem('jeopardy_data', JSON.stringify(gameData));
+    localStorage.setItem('jeopardy_used', JSON.stringify(usedCells));
+    localStorage.setItem('jeopardy_players', JSON.stringify(players));
+    localStorage.setItem('jeopardy_active', activePlayer);
+  } catch(e) {}
+}
+function load() {
+  try {
+    const d = localStorage.getItem('jeopardy_data');
+    if (d) gameData = JSON.parse(d);
+    const u = localStorage.getItem('jeopardy_used');
+    if (u) usedCells = JSON.parse(u);
+    const p = localStorage.getItem('jeopardy_players');
+    if (p) players = JSON.parse(p);
+    const a = localStorage.getItem('jeopardy_active');
+    if (a && a !== 'null') activePlayer = a;
+  } catch(e) {}
+}
+
+// ── Board ──
+function buildBoard() {
+  const board = document.getElementById('board');
+  const cols = gameData.categories.length;
+  board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  board.innerHTML = '';
+
+  gameData.categories.forEach(cat => {
+    const cell = document.createElement('div');
+    cell.className = 'cat-cell';
+    cell.textContent = cat.name;
+    board.appendChild(cell);
+  });
+
+  VALUES.forEach((val, ri) => {
+    gameData.categories.forEach((cat, ci) => {
+      const key = `${ci}-${ri}`;
+      const cell = document.createElement('div');
+      cell.className = 'clue-cell' + (usedCells[key] ? ' used' : '');
+      cell.textContent = usedCells[key] ? '' : `$${val}`;
+      cell.dataset.cat = ci;
+      cell.dataset.row = ri;
+      if (!usedCells[key]) {
+        cell.addEventListener('click', () => openClue(ci, ri));
+      }
+      board.appendChild(cell);
+    });
+  });
+}
+
+// ── Clue Modal ──
+function openClue(ci, ri) {
+  const cat = gameData.categories[ci];
+  const clue = cat.clues[ri];
+  const val = VALUES[ri];
+  const key = `${ci}-${ri}`;
+  currentClue = { ci, ri, val, key };
+  if (clue.dd) {
+    showDailyDouble(() => openModal(cat, clue, val));
+  } else {
+    openModal(cat, clue, val);
+  }
+}
+
+function openModal(cat, clue, val) {
+  document.getElementById('modal-cat').textContent = cat.name;
+  document.getElementById('modal-value').textContent = `$${val}`;
+  document.getElementById('modal-clue').textContent = clue.q;
+  document.getElementById('answer-text').textContent = clue.a;
+  document.getElementById('modal-answer').classList.remove('visible');
+  document.getElementById('award-section').classList.remove('visible');
+  document.getElementById('reveal-btn').style.display = '';
+  buildAwardButtons(val);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function buildAwardButtons(val) {
+  const container = document.getElementById('award-buttons');
+  container.innerHTML = '';
+  if (!players.length) {
+    container.innerHTML = '<span style="color:#4a7a4a;font-size:0.78rem;">Add players to award points</span>';
+    return;
+  }
+  players.forEach(p => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:4px;align-items:center;margin-bottom:4px;';
+
+    const name = document.createElement('span');
+    name.textContent = p.name;
+    name.style.cssText = 'font-size:0.78rem;color:#cce;min-width:80px;text-align:left;';
+
+    const correct = document.createElement('button');
+    correct.className = 'award-btn correct';
+    correct.textContent = `+$${val}`;
+    correct.onclick = () => { adjustScore(p.name, val); closeModal(); };
+
+    const wrong = document.createElement('button');
+    wrong.className = 'award-btn wrong';
+    wrong.textContent = `-$${val}`;
+    wrong.onclick = () => { adjustScore(p.name, -val); };
+
+    row.append(name, correct, wrong);
+    container.appendChild(row);
+  });
+}
+
+document.getElementById('reveal-btn').onclick = () => {
+  document.getElementById('modal-answer').classList.add('visible');
+  document.getElementById('award-section').classList.add('visible');
+  document.getElementById('reveal-btn').style.display = 'none';
+};
+
+document.getElementById('close-btn').onclick = closeModal;
+
+function closeModal() {
+  if (currentClue) {
+    usedCells[currentClue.key] = true;
+    save();
+    buildBoard();
+  }
+  currentClue = null;
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── Daily Double ──
+function showDailyDouble(cb) {
+  const dd = document.getElementById('dd-overlay');
+  dd.classList.add('open');
+  const dismiss = () => {
+    dd.classList.remove('open');
+    dd.removeEventListener('click', dismiss);
+    cb();
+  };
+  dd.addEventListener('click', dismiss);
+}
+
+// ── Players ──
+function renderPlayers() {
+  const list = document.getElementById('player-list');
+  list.innerHTML = '';
+  players.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'player-row' + (p.name === activePlayer ? ' active-player' : '');
+
+    const name = document.createElement('div');
+    name.className = 'player-name';
+    name.textContent = p.name;
+    name.style.cursor = 'pointer';
+    name.title = 'Set as active player';
+    name.onclick = () => { activePlayer = p.name; save(); renderPlayers(); };
+
+    const score = document.createElement('div');
+    score.className = 'player-score';
+    score.textContent = `$${p.score.toLocaleString()}`;
+    if (p.score < 0) score.style.color = '#ff8888';
+
+    const plus = document.createElement('button');
+    plus.className = 'score-btn';
+    plus.textContent = '+';
+    plus.title = 'Add 100';
+    plus.onclick = () => { adjustScore(p.name, 100); };
+
+    const minus = document.createElement('button');
+    minus.className = 'score-btn';
+    minus.textContent = '−';
+    minus.title = 'Subtract 100';
+    minus.onclick = () => { adjustScore(p.name, -100); };
+
+    const del = document.createElement('button');
+    del.className = 'score-btn del-btn';
+    del.textContent = '×';
+    del.title = 'Remove player';
+    del.onclick = () => {
+      if (confirm(`Remove ${p.name}?`)) {
+        players = players.filter(x => x.name !== p.name);
+        if (activePlayer === p.name) activePlayer = null;
+        save(); renderPlayers();
+      }
+    };
+
+    row.append(name, score, plus, minus, del);
+    list.appendChild(row);
+  });
+}
+
+function adjustScore(name, delta) {
+  const p = players.find(x => x.name === name);
+  if (p) { p.score += delta; save(); renderPlayers(); }
+}
+
+document.getElementById('add-player-btn').onclick = addPlayer;
+document.getElementById('player-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addPlayer();
+});
+function addPlayer() {
+  const inp = document.getElementById('player-name-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (players.find(p => p.name === name)) { alert('Name already in use.'); return; }
+  players.push({ name, score: 0 });
+  if (!activePlayer) activePlayer = name;
+  inp.value = '';
+  save();
+  renderPlayers();
+  if (currentClue) buildAwardButtons(currentClue.val);
+}
+
+// ── Reset ──
+document.getElementById('reset-btn').onclick = () => {
+  if (confirm('Reset the board? (Scores are kept.)')) {
+    usedCells = {};
+    save();
+    buildBoard();
+  }
+};
+
+// ── Edit Modal ──
+document.getElementById('edit-btn').onclick = openEdit;
+document.getElementById('edit-cancel-btn').onclick = () => {
+  document.getElementById('edit-overlay').classList.remove('open');
+};
+
+function openEdit() {
+  const form = document.getElementById('edit-form');
+  form.innerHTML = '';
+
+  const colHeader = document.createElement('div');
+  colHeader.style.cssText = 'display:grid;grid-template-columns:60px 1fr 1fr 90px;gap:6px;margin-bottom:4px;';
+  colHeader.innerHTML = `
+    <div class="edit-col-label">Value</div>
+    <div class="edit-col-label">Clue (read aloud)</div>
+    <div class="edit-col-label">Answer</div>
+    <div class="edit-col-label">Daily Double?</div>
+  `;
+
+  gameData.categories.forEach((cat, ci) => {
+    const block = document.createElement('div');
+    block.className = 'edit-category-block';
+
+    const catLabel = document.createElement('label');
+    catLabel.textContent = `Category ${ci + 1} name`;
+    const catInput = document.createElement('input');
+    catInput.type = 'text';
+    catInput.value = cat.name;
+    catInput.dataset.ci = ci;
+    catInput.className = 'cat-name-input';
+
+    block.append(catLabel, catInput, colHeader.cloneNode(true));
+
+    cat.clues.forEach((clue, ri) => {
+      const row = document.createElement('div');
+      row.className = 'edit-row';
+
+      const valSpan = document.createElement('span');
+      valSpan.textContent = `$${VALUES[ri]}`;
+
+      const qInput = document.createElement('input');
+      qInput.type = 'text';
+      qInput.value = clue.q;
+      qInput.placeholder = 'Clue text...';
+      qInput.dataset.ci = ci;
+      qInput.dataset.ri = ri;
+      qInput.className = 'clue-q-input';
+
+      const aInput = document.createElement('input');
+      aInput.type = 'text';
+      aInput.value = clue.a;
+      aInput.placeholder = 'Answer...';
+      aInput.dataset.ci = ci;
+      aInput.dataset.ri = ri;
+      aInput.className = 'clue-a-input';
+
+      const ddSel = document.createElement('select');
+      ddSel.dataset.ci = ci;
+      ddSel.dataset.ri = ri;
+      ddSel.className = 'clue-dd-input';
+      ddSel.innerHTML = `<option value="0">No</option><option value="1">Yes</option>`;
+      ddSel.value = clue.dd ? '1' : '0';
+
+      row.append(valSpan, qInput, aInput, ddSel);
+      block.appendChild(row);
+    });
+
+    form.appendChild(block);
+  });
+
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+document.getElementById('edit-save-btn').onclick = () => {
+  document.querySelectorAll('.cat-name-input').forEach(inp => {
+    const ci = parseInt(inp.dataset.ci);
+    gameData.categories[ci].name = inp.value.trim() || gameData.categories[ci].name;
+  });
+  document.querySelectorAll('.clue-q-input').forEach(inp => {
+    const ci = parseInt(inp.dataset.ci), ri = parseInt(inp.dataset.ri);
+    gameData.categories[ci].clues[ri].q = inp.value.trim();
+  });
+  document.querySelectorAll('.clue-a-input').forEach(inp => {
+    const ci = parseInt(inp.dataset.ci), ri = parseInt(inp.dataset.ri);
+    gameData.categories[ci].clues[ri].a = inp.value.trim();
+  });
+  document.querySelectorAll('.clue-dd-input').forEach(sel => {
+    const ci = parseInt(sel.dataset.ci), ri = parseInt(sel.dataset.ri);
+    gameData.categories[ci].clues[ri].dd = sel.value === '1';
+  });
+  save();
+  buildBoard();
+  document.getElementById('edit-overlay').classList.remove('open');
+};
+
+// ── Overlay click-outside ──
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('overlay')) closeModal();
+});
+
+// ── Init ──
+load();
+buildBoard();
+renderPlayers();
+</script>
+</body>
+</html>
