@@ -4,544 +4,751 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Camp Koronis Jeopardy!</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
-    background: #0d2b1a;
-    color: #fff;
-    font-family: 'Georgia', serif;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
+body {
+  background: #071410;
+  color: #fff;
+  font-family: 'Roboto Condensed', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 
-  /* ── Starfield ── */
-  #starfield {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* ── Starfield ── */
+#starfield {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  /* ── Header ── */
-  #header {
-    position: relative;
-    z-index: 10;
-    text-align: center;
-    padding: 0.5rem 1rem 0.5rem;
-    background: linear-gradient(180deg, #0a1a0d 0%, #0d2b1a 100%);
-    border-bottom: 3px solid #d4a017;
-    -webkit-app-region: drag;
-    flex-shrink: 0;
-    padding-top: calc(0.5rem + env(titlebar-area-height, 36px));
-  }
-  #header .camp-name {
-    font-size: clamp(0.8rem, 1.8vw, 1.1rem);
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    color: #7ec87e;
-    font-family: 'Georgia', serif;
-    font-style: normal;
-    text-shadow: 0 0 10px #2a6a2a;
-  }
-  #header h1 {
-    font-size: clamp(1.4rem, 3.5vw, 2.4rem);
-    letter-spacing: 0.08em;
-    color: #f5d252;
-    text-shadow: 0 0 24px #a87800, 0 2px 0 #6b4e00;
-    font-style: italic;
-    line-height: 1.1;
-  }
-  #header p {
-    font-size: 0.78rem;
-    color: #7ec87e;
-    margin-top: 0.15rem;
-    font-family: Arial, sans-serif;
-    -webkit-app-region: no-drag;
-  }
+/* ── Forest silhouette ── */
+#forest-bg {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.35;
+}
 
-  /* ── Main layout ── */
-  #main {
-    position: relative;
-    z-index: 10;
-    display: flex;
-    gap: 0.75rem;
-    padding: 0.75rem;
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
-  }
+/* ── Header ── */
+#header {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 0.55rem 1rem 0.45rem;
+  background: linear-gradient(180deg, #020a06 0%, #071410 100%);
+  border-bottom: 3px solid #d4a017;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+.header-trees {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+.header-text { flex-shrink: 0; }
+#header .camp-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(0.65rem, 1.4vw, 0.9rem);
+  letter-spacing: 0.45em;
+  text-transform: uppercase;
+  color: #7ec87e;
+  text-shadow: 0 0 12px #2a6a2a;
+}
+#header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.5rem, 3.2vw, 2.5rem);
+  letter-spacing: 0.04em;
+  color: #f5d252;
+  text-shadow: 0 0 30px #c8960080, 0 2px 0 #6b4e00;
+  font-style: italic;
+  line-height: 1.05;
+}
+#header p {
+  font-size: 0.72rem;
+  color: #5a9a5a;
+  margin-top: 0.1rem;
+  font-family: 'Roboto Condensed', sans-serif;
+  letter-spacing: 0.05em;
+  -webkit-app-region: no-drag;
+}
 
-  /* ── Board area ── */
-  #board-wrap {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
+/* ── Main layout ── */
+#main {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.6rem;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
 
-  #board {
-    display: grid;
-    gap: 4px;
-    flex: 1;
-  }
+/* ── Board ── */
+#board-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+#board { display: grid; gap: 5px; flex: 1; }
 
-  .cat-cell {
-    background: linear-gradient(180deg, #1a3a8a 0%, #0f2060 100%);
-    border: 2px solid #2a4aaa;
-    border-radius: 5px;
-    padding: 0.5rem 0.4rem;
-    text-align: center;
-    font-size: clamp(0.5rem, 1.1vw, 0.72rem);
-    font-weight: bold;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1.2;
-    text-shadow: 0 1px 3px #00000080;
-  }
+.cat-cell {
+  background: linear-gradient(180deg, #1e3fa0 0%, #0e2468 100%);
+  border: 2px solid #3050c0;
+  border-radius: 6px;
+  padding: 0.5rem 0.3rem;
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(0.48rem, 1vw, 0.68rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  text-shadow: 0 1px 4px #00000090;
+}
 
-  .clue-cell {
-    background: linear-gradient(180deg, #1a3a8a 0%, #0f2060 100%);
-    border: 2px solid #2a4aaa;
-    border-radius: 5px;
-    text-align: center;
-    font-size: clamp(0.9rem, 2vw, 1.5rem);
-    font-weight: bold;
-    color: #f5d252;
-    text-shadow: 0 1px 6px #00000080;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-  }
-  .clue-cell:hover:not(.used) {
-    background: linear-gradient(180deg, #2a4dcc 0%, #1a35a0 100%);
-    transform: scale(1.03);
-    box-shadow: 0 0 14px #d4a01740;
-  }
-  .clue-cell.used {
-    background: #071a0e;
-    color: #071a0e;
-    cursor: default;
-    border-color: #0f2a18;
-  }
+.clue-cell {
+  background: linear-gradient(180deg, #1e3fa0 0%, #0e2468 100%);
+  border: 2px solid #3050c0;
+  border-radius: 6px;
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(0.85rem, 1.8vw, 1.4rem);
+  font-weight: 700;
+  color: #f5d252;
+  text-shadow: 0 0 12px #c8960060, 0 1px 4px #00000090;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: background 0.12s, transform 0.12s, box-shadow 0.12s;
+  position: relative;
+  overflow: hidden;
+}
+.clue-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, #ffffff0a 0%, transparent 70%);
+  pointer-events: none;
+}
+.clue-cell:hover:not(.used) {
+  background: linear-gradient(180deg, #2e52cc 0%, #1a35a8 100%);
+  transform: scale(1.04);
+  box-shadow: 0 0 20px #d4a01750, 0 4px 12px #00000060;
+  border-color: #d4a017;
+}
+.clue-cell.used {
+  background: #040c08;
+  color: #040c08;
+  cursor: default;
+  border-color: #0a1a10;
+  box-shadow: none;
+}
 
-  /* ── Right sidebar ── */
-  #sidebar {
-    width: 280px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    overflow: hidden;
-  }
+/* flip reveal animation */
+@keyframes flipIn {
+  0% { transform: rotateY(90deg) scale(0.85); opacity: 0; }
+  60% { transform: rotateY(-8deg) scale(1.02); }
+  100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+.clue-cell.flipping { animation: flipIn 0.4s ease-out; }
 
-  /* ── 3D Host Panel ── */
-  #host-panel {
-    flex: 1;
-    min-height: 0;
-    background: #0a1a0d;
-    border: 2px solid #2a6a2a;
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-  }
-  #host-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-  #host-label {
-    position: absolute;
-    bottom: 8px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: 0.65rem;
-    color: #7ec87e80;
-    font-family: Arial, sans-serif;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    pointer-events: none;
-  }
+/* ── Right sidebar ── */
+#sidebar {
+  width: 270px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow: hidden;
+}
 
-  /* ── Scoreboard ── */
-  #scoreboard {
-    flex-shrink: 0;
-    background: linear-gradient(180deg, #0d1a0d 0%, #0d1550 100%);
-    border: 2px solid #d4a017;
-    border-radius: 8px;
-    padding: 0.65rem;
-  }
-  #scoreboard h2 {
-    text-align: center;
-    font-size: 0.9rem;
-    letter-spacing: 0.12em;
-    color: #f5d252;
-    text-transform: uppercase;
-    border-bottom: 1px solid #d4a017;
-    padding-bottom: 0.4rem;
-    margin-bottom: 0.6rem;
-  }
-  .player-row {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-bottom: 0.4rem;
-    background: #1a2a8a;
-    border-radius: 6px;
-    padding: 0.35rem 0.45rem;
-    border: 1px solid transparent;
-    transition: border-color 0.15s;
-  }
-  .player-row.active-player {
-    background: #1e3a6e;
-    border-color: #f5d252;
-    box-shadow: 0 0 8px #f5d25230;
-  }
-  .player-name {
-    flex: 1;
-    font-size: 0.75rem;
-    color: #cce;
-    font-family: Arial, sans-serif;
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .player-score {
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: #f5d252;
-    min-width: 50px;
-    text-align: right;
-    font-family: 'Courier New', monospace;
-  }
-  .score-btn {
-    background: none;
-    border: 1px solid #446;
-    border-radius: 3px;
-    color: #aac;
-    cursor: pointer;
-    font-size: 0.7rem;
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    flex-shrink: 0;
-    -webkit-app-region: no-drag;
-  }
-  .score-btn:hover { background: #2a3aaa; color: #fff; }
-  .del-btn { color: #c66; border-color: #944; }
-  .del-btn:hover { background: #622; color: #faa; }
+/* ── 3D Host Panel ── */
+#host-panel {
+  flex: 1;
+  min-height: 0;
+  background: #050f07;
+  border: 2px solid #1a4a1a;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+#host-canvas { width: 100%; height: 100%; display: block; }
+#host-label {
+  position: absolute;
+  bottom: 8px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 0.6rem;
+  color: #2a6a2a;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
 
-  #add-player-area { margin-top: 0.6rem; }
-  #add-player-area input {
-    width: 100%;
-    background: #071407;
-    border: 1px solid #2a5a2a;
-    border-radius: 4px;
-    color: #fff;
-    padding: 0.3rem 0.45rem;
-    font-size: 0.75rem;
-    margin-bottom: 0.35rem;
-    font-family: Arial, sans-serif;
-    -webkit-app-region: no-drag;
-  }
-  #add-player-area input::placeholder { color: #4a7a4a; }
-  #add-player-area input:focus { outline: none; border-color: #d4a017; }
-  #add-player-btn {
-    width: 100%;
-    background: linear-gradient(180deg, #d4a017 0%, #a87800 100%);
-    border: none;
-    border-radius: 4px;
-    color: #0d1a0d;
-    font-weight: bold;
-    font-size: 0.75rem;
-    padding: 0.3rem;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    font-family: Arial, sans-serif;
-    -webkit-app-region: no-drag;
-  }
-  #add-player-btn:hover { background: linear-gradient(180deg, #f5d252 0%, #d4a017 100%); }
+/* ── Scoreboard ── */
+#scoreboard {
+  flex-shrink: 0;
+  background: linear-gradient(180deg, #080f08 0%, #060b24 100%);
+  border: 2px solid #d4a017;
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+#scoreboard h2 {
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  color: #f5d252;
+  text-transform: uppercase;
+  border-bottom: 1px solid #d4a01760;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.55rem;
+}
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0.35rem;
+  background: #0e1e6a;
+  border-radius: 6px;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.player-row.active-player {
+  background: #162060;
+  border-color: #f5d252;
+  box-shadow: 0 0 10px #f5d25228, inset 0 0 8px #f5d25210;
+}
+.player-name {
+  flex: 1;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 0.72rem;
+  color: #b0c0ff;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.player-name:hover { color: #fff; }
+.player-score {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f5d252;
+  min-width: 52px;
+  text-align: right;
+  transition: color 0.3s;
+}
+.player-score.negative { color: #ff7070; }
+.score-btn {
+  background: none;
+  border: 1px solid #2a3a7a;
+  border-radius: 3px;
+  color: #7080c0;
+  cursor: pointer;
+  font-size: 0.65rem;
+  width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  transition: background 0.12s;
+}
+.score-btn:hover { background: #2a3aaa; color: #fff; border-color: #4060cc; }
+.del-btn { color: #944; border-color: #622; }
+.del-btn:hover { background: #511; color: #f88; }
 
-  #scoreboard-footer {
-    margin-top: 0.6rem;
-    border-top: 1px solid #2a5a2a;
-    padding-top: 0.5rem;
-    font-size: 0.65rem;
-    color: #4a7a4a;
-    text-align: center;
-    font-family: Arial, sans-serif;
-    line-height: 1.5;
-  }
+#add-player-area { margin-top: 0.55rem; }
+#add-player-area input {
+  width: 100%;
+  background: #040c08;
+  border: 1px solid #1a4a1a;
+  border-radius: 4px;
+  color: #fff;
+  padding: 0.28rem 0.4rem;
+  font-size: 0.72rem;
+  margin-bottom: 0.3rem;
+  font-family: 'Roboto Condensed', sans-serif;
+  -webkit-app-region: no-drag;
+  transition: border-color 0.15s;
+}
+#add-player-area input:focus { outline: none; border-color: #d4a017; }
+#add-player-area input::placeholder { color: #2a5a2a; }
+#add-player-btn {
+  width: 100%;
+  background: linear-gradient(180deg, #d4a017 0%, #a07800 100%);
+  border: none;
+  border-radius: 4px;
+  color: #040c00;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 0.72rem;
+  padding: 0.28rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  -webkit-app-region: no-drag;
+  transition: filter 0.12s;
+}
+#add-player-btn:hover { filter: brightness(1.2); }
 
-  /* ── Bottom bar ── */
-  #bottom-bar {
-    position: relative;
-    z-index: 10;
-    text-align: center;
-    padding: 0.4rem 1rem 0.5rem;
-    flex-shrink: 0;
-  }
-  #reset-btn {
-    background: none;
-    border: 1px solid #2a5a2a;
-    border-radius: 4px;
-    color: #4a7a4a;
-    font-size: 0.7rem;
-    padding: 0.3rem 0.7rem;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    -webkit-app-region: no-drag;
-  }
-  #reset-btn:hover { border-color: #c44; color: #c44; }
+#scoreboard-footer {
+  margin-top: 0.5rem;
+  border-top: 1px solid #1a3a1a;
+  padding-top: 0.4rem;
+  font-size: 0.6rem;
+  color: #2a5a2a;
+  text-align: center;
+  font-family: 'Roboto Condensed', sans-serif;
+  letter-spacing: 0.05em;
+}
 
-  /* ── Clue Modal ── */
-  #overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 10, 5, 0.88);
-    display: none;
-    z-index: 100;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    backdrop-filter: blur(4px);
-  }
-  #overlay.open { display: flex; }
+/* ── Bottom bar ── */
+#bottom-bar {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 0.35rem 1rem 0.45rem;
+  flex-shrink: 0;
+}
+#reset-btn {
+  background: none;
+  border: 1px solid #1a3a1a;
+  border-radius: 4px;
+  color: #2a5a2a;
+  font-size: 0.68rem;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
+  font-family: 'Roboto Condensed', sans-serif;
+  letter-spacing: 0.05em;
+  -webkit-app-region: no-drag;
+  transition: border-color 0.15s, color 0.15s;
+}
+#reset-btn:hover { border-color: #c44; color: #c44; }
 
-  #modal {
-    background: linear-gradient(180deg, #0f2560 0%, #0a1a40 100%);
-    border: 3px solid #d4a017;
-    border-radius: 14px;
-    padding: 2rem 2.2rem;
-    max-width: 720px;
-    width: 100%;
-    text-align: center;
-    position: relative;
-    box-shadow: 0 0 60px #d4a01730, 0 0 120px #0a1a4080;
-  }
-  #modal::before {
-    content: '';
-    position: absolute;
-    inset: -3px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #d4a017, #0d2b1a, #d4a017);
-    z-index: -1;
-    opacity: 0.5;
-  }
-  #modal-cat {
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: #7ec87e;
-    margin-bottom: 0.3rem;
-    font-family: Arial, sans-serif;
-  }
-  #modal-value {
-    font-size: 2.2rem;
-    font-weight: bold;
-    color: #f5d252;
-    margin-bottom: 1rem;
-    text-shadow: 0 0 20px #a87800;
-  }
-  #modal-clue {
-    font-size: clamp(1rem, 2.3vw, 1.55rem);
-    color: #fff;
-    line-height: 1.55;
-    margin-bottom: 1.4rem;
-    min-height: 3em;
-  }
-  #modal-answer {
-    font-size: clamp(0.95rem, 2vw, 1.35rem);
-    color: #7eff9a;
-    font-weight: bold;
-    margin-bottom: 1.4rem;
-    min-height: 2em;
-    display: none;
-    text-shadow: 0 0 10px #2aff6040;
-  }
-  #modal-answer.visible { display: block; }
-  .modal-answer-label {
-    font-size: 0.65rem;
-    color: #5a9a5a;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    margin-bottom: 0.2rem;
-    font-family: Arial, sans-serif;
-  }
+/* ── Clue Modal ── */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  display: none;
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+#overlay.open { display: flex; }
 
-  #modal-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
-  .modal-btn {
-    padding: 0.5rem 1.2rem;
-    border-radius: 7px;
-    border: 2px solid;
-    font-size: 0.85rem;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    letter-spacing: 0.03em;
-    transition: opacity 0.15s, transform 0.1s;
-  }
-  .modal-btn:hover { opacity: 0.85; transform: scale(1.03); }
-  #reveal-btn {
-    background: linear-gradient(180deg, #d4a017 0%, #a87800 100%);
-    border-color: #d4a017;
-    color: #0a1a0d;
-  }
-  #close-btn { background: #1a2a4a; border-color: #446; color: #cce; }
+#modal {
+  background: linear-gradient(160deg, #0e2468 0%, #060b24 60%, #071410 100%);
+  border: 3px solid #d4a017;
+  border-radius: 14px;
+  padding: 2rem 2.5rem;
+  max-width: 720px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 0 60px #d4a01730, 0 20px 60px #00000080;
+  animation: modalPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalPop {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+#modal-cat {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #7090ff;
+  margin-bottom: 0.3rem;
+}
+#modal-value {
+  font-family: 'Oswald', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #f5d252;
+  text-shadow: 0 0 20px #c8960080;
+  margin-bottom: 1.2rem;
+  letter-spacing: 0.05em;
+}
+#modal-clue {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  color: #fff;
+  line-height: 1.55;
+  margin-bottom: 1.5rem;
+  min-height: 3em;
+  text-shadow: 0 1px 4px #00000060;
+}
+#modal-answer {
+  background: #051a08;
+  border: 1px solid #2a7a2a;
+  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  margin-bottom: 1.4rem;
+  display: none;
+  animation: fadeSlide 0.35s ease-out;
+}
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#modal-answer.visible { display: block; }
+.modal-answer-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.65rem;
+  color: #4a8a4a;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.25rem;
+}
+#answer-text {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(1rem, 2.2vw, 1.5rem);
+  font-weight: 600;
+  color: #7eff9a;
+  text-shadow: 0 0 16px #00ff4440;
+  letter-spacing: 0.03em;
+}
 
-  #award-section { margin-top: 1.1rem; display: none; }
-  #award-section.visible { display: block; }
-  #award-section p { font-size: 0.78rem; color: #7ec87e; margin-bottom: 0.55rem; font-family: Arial, sans-serif; }
-  #award-buttons { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
-  .award-btn {
-    padding: 0.32rem 0.7rem;
-    border-radius: 5px;
-    border: 1px solid #d4a017;
-    background: #0d1550;
-    color: #f5d252;
-    font-size: 0.78rem;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    transition: background 0.15s;
-  }
-  .award-btn:hover { background: #1a2a8a; }
-  .award-btn.correct { border-color: #4c4; color: #4c4; }
-  .award-btn.wrong   { border-color: #c44; color: #c44; }
+#modal-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+.modal-btn {
+  padding: 0.5rem 1.3rem;
+  border-radius: 7px;
+  border: 2px solid;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: filter 0.12s, transform 0.1s;
+}
+.modal-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.modal-btn:active { transform: translateY(0); }
+#reveal-btn { background: #d4a017; border-color: #d4a017; color: #040800; }
+#close-btn  { background: #0e1a4a; border-color: #3050a0; color: #a0b0ff; }
 
-  /* ── Daily Double ── */
-  #dd-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 8, 3, 0.94);
-    display: none;
-    z-index: 200;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(6px);
-  }
-  #dd-overlay.open { display: flex; }
-  #dd-box {
-    text-align: center;
-    animation: ddPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-  @keyframes ddPop {
-    from { transform: scale(0.2) rotate(-5deg); opacity: 0; }
-    to   { transform: scale(1) rotate(0deg); opacity: 1; }
-  }
-  #dd-box h2 {
-    font-size: clamp(2.8rem, 8vw, 5.5rem);
-    color: #f5d252;
-    text-shadow: 0 0 50px #a87800, 0 0 100px #d4a01760;
-    font-style: italic;
-    letter-spacing: 0.05em;
-  }
-  #dd-box .dd-sub {
-    color: #7ec87e;
-    font-size: 1rem;
-    margin-top: 0.5rem;
-    font-family: Arial, sans-serif;
-  }
-  #dd-box .dd-campfire {
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
-    animation: flicker 0.8s ease-in-out infinite alternate;
-  }
-  @keyframes flicker {
-    from { opacity: 0.8; transform: scale(0.97); }
-    to   { opacity: 1; transform: scale(1.03); }
-  }
+#award-section { margin-top: 1.1rem; display: none; }
+#award-section.visible { display: block; }
+#award-section p {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.72rem;
+  color: #7090c0;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#award-buttons { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: center; }
+.award-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
+.award-name {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 0.75rem;
+  color: #b0c0ff;
+  min-width: 80px;
+  text-align: left;
+  font-weight: 700;
+}
+.award-btn {
+  padding: 0.3rem 0.7rem;
+  border-radius: 5px;
+  border: 1px solid;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: filter 0.12s, transform 0.1s;
+}
+.award-btn:hover { filter: brightness(1.2); transform: scale(1.05); }
+.award-btn.correct  { border-color: #3c3; color: #3c3; background: #0a200a; }
+.award-btn.wrong    { border-color: #c33; color: #c33; background: #200a0a; }
 
-  /* ── Edit btn ── */
-  #edit-btn {
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    background: #0d1550;
-    border: 1px solid #2a5a2a;
-    color: #4a7a4a;
-    font-size: 0.7rem;
-    padding: 0.35rem 0.7rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-family: Arial, sans-serif;
-    z-index: 50;
-    -webkit-app-region: no-drag;
-  }
-  #edit-btn:hover { border-color: #f5d252; color: #f5d252; }
+/* ── Floating score popup ── */
+.score-pop {
+  position: fixed;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 999;
+  animation: scorePop 1.2s ease-out forwards;
+}
+@keyframes scorePop {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(1.3); }
+}
 
-  /* ── Edit modal ── */
-  #edit-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.92);
-    display: none;
-    z-index: 300;
-    justify-content: center;
-    align-items: flex-start;
-    overflow-y: auto;
-    padding: 2rem 1rem;
-    backdrop-filter: blur(4px);
-  }
-  #edit-overlay.open { display: flex; }
-  #edit-modal {
-    background: #0a1a0d;
-    border: 2px solid #d4a017;
-    border-radius: 10px;
-    padding: 1.5rem;
-    max-width: 880px;
-    width: 100%;
-    font-family: Arial, sans-serif;
-  }
-  #edit-modal h2 { color: #f5d252; margin-bottom: 1rem; font-size: 1.1rem; }
-  .edit-category-block { margin-bottom: 1.4rem; }
-  .edit-category-block label { font-size: 0.7rem; color: #7ec87e; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.2rem; }
-  .edit-category-block input[type="text"] {
-    width: 100%;
-    background: #071407;
-    border: 1px solid #2a5a2a;
-    border-radius: 4px;
-    color: #fff;
-    padding: 0.3rem 0.5rem;
-    font-size: 0.85rem;
-    margin-bottom: 0.5rem;
-  }
-  .edit-row { display: grid; grid-template-columns: 60px 1fr 1fr 90px; gap: 6px; align-items: center; margin-bottom: 4px; }
-  .edit-row span { color: #f5d252; font-size: 0.78rem; font-weight: bold; text-align: center; }
-  .edit-row input { background: #071407; border: 1px solid #2a5a2a; border-radius: 4px; color: #fff; padding: 0.28rem 0.4rem; font-size: 0.78rem; width: 100%; }
-  .edit-row select { background: #071407; border: 1px solid #2a5a2a; border-radius: 4px; color: #f5d252; padding: 0.28rem 0.4rem; font-size: 0.72rem; }
-  .edit-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
-  .edit-save-btn { background: linear-gradient(180deg,#d4a017,#a87800); border: none; border-radius: 5px; color: #0a1a0d; font-weight: bold; padding: 0.5rem 1.2rem; cursor: pointer; font-size: 0.88rem; }
-  .edit-save-btn:hover { background: linear-gradient(180deg,#f5d252,#d4a017); }
-  .edit-cancel-btn { background: none; border: 1px solid #2a5a2a; border-radius: 5px; color: #7ec87e; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.88rem; }
-  .edit-col-label { font-size: 0.68rem; color: #4a7a4a; text-align: center; }
+/* ── Confetti canvas ── */
+#confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 998;
+}
+
+/* ── Daily Double ── */
+#dd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.96);
+  display: none;
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+#dd-overlay.open { display: flex; }
+#dd-box { text-align: center; }
+#dd-box h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(3rem, 9vw, 7rem);
+  color: #f5d252;
+  text-shadow: 0 0 50px #c89600, 0 0 100px #c8960060;
+  font-style: italic;
+  letter-spacing: 0.03em;
+  animation: ddGlow 1.5s ease-in-out infinite alternate;
+}
+@keyframes ddGlow {
+  from { text-shadow: 0 0 30px #c89600, 0 0 60px #c8960060; }
+  to   { text-shadow: 0 0 60px #ffcc00, 0 0 120px #ffcc0080; }
+}
+.dd-stars {
+  font-size: 1.4rem;
+  color: #d4a017;
+  letter-spacing: 1rem;
+  margin-top: 0.5rem;
+  animation: ddPop 0.6s ease-out;
+}
+@keyframes ddPop {
+  from { transform: scale(0.2) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+#dd-box p {
+  color: #4a6a4a;
+  font-size: 0.85rem;
+  margin-top: 1rem;
+  font-family: 'Roboto Condensed', sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── Edit button ── */
+#edit-btn {
+  position: fixed;
+  bottom: 0.7rem;
+  right: 0.7rem;
+  background: #0e1a4a;
+  border: 1px solid #2a3a8a;
+  color: #7090c0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.75rem;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 50;
+  transition: border-color 0.15s, color 0.15s;
+}
+#edit-btn:hover { border-color: #d4a017; color: #f5d252; }
+
+/* ── Edit Modal ── */
+#edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.94);
+  display: none;
+  z-index: 300;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 1.5rem 1rem;
+  backdrop-filter: blur(4px);
+}
+#edit-overlay.open { display: flex; }
+#edit-modal {
+  background: linear-gradient(160deg, #080f24 0%, #040c08 100%);
+  border: 2px solid #d4a017;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 900px;
+  width: 100%;
+  font-family: 'Roboto Condensed', sans-serif;
+}
+#edit-modal h2 {
+  font-family: 'Oswald', sans-serif;
+  color: #f5d252;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.edit-category-block { margin-bottom: 1.5rem; border-top: 1px solid #1a3a1a; padding-top: 1rem; }
+.edit-category-block:first-child { border-top: none; padding-top: 0; }
+.edit-category-block label {
+  font-size: 0.65rem;
+  color: #7090c0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.edit-category-block input[type="text"] {
+  width: 100%;
+  background: #040c18;
+  border: 1px solid #2a3a6a;
+  border-radius: 4px;
+  color: #fff;
+  padding: 0.32rem 0.45rem;
+  font-size: 0.88rem;
+  margin-bottom: 0.6rem;
+  font-family: 'Oswald', sans-serif;
+  transition: border-color 0.15s;
+}
+.edit-category-block input[type="text"]:focus { outline: none; border-color: #d4a017; }
+.edit-col-labels {
+  display: grid;
+  grid-template-columns: 55px 1fr 1fr 75px;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+.edit-col-label { font-size: 0.6rem; color: #3a5a5a; text-align: center; letter-spacing: 0.05em; text-transform: uppercase; }
+.edit-row { display: grid; grid-template-columns: 55px 1fr 1fr 75px; gap: 5px; align-items: center; margin-bottom: 4px; }
+.edit-row span {
+  font-family: 'Oswald', sans-serif;
+  color: #f5d252;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+.edit-row input {
+  background: #040c18;
+  border: 1px solid #1a2a5a;
+  border-radius: 4px;
+  color: #fff;
+  padding: 0.26rem 0.38rem;
+  font-size: 0.78rem;
+  width: 100%;
+  font-family: 'Roboto Condensed', sans-serif;
+  transition: border-color 0.15s;
+}
+.edit-row input:focus { outline: none; border-color: #5070cc; }
+.edit-row select {
+  background: #040c18;
+  border: 1px solid #1a2a5a;
+  border-radius: 4px;
+  color: #f5d252;
+  padding: 0.26rem 0.3rem;
+  font-size: 0.72rem;
+  font-family: 'Oswald', sans-serif;
+}
+.edit-actions { display: flex; gap: 0.5rem; margin-top: 1.2rem; }
+.edit-save-btn {
+  background: linear-gradient(180deg, #d4a017 0%, #a07800 100%);
+  border: none;
+  border-radius: 6px;
+  color: #040800;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  padding: 0.5rem 1.4rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: filter 0.12s;
+}
+.edit-save-btn:hover { filter: brightness(1.2); }
+.edit-cancel-btn {
+  background: none;
+  border: 1px solid #2a3a6a;
+  border-radius: 6px;
+  color: #7090c0;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: 'Roboto Condensed', sans-serif;
+  transition: border-color 0.15s;
+}
+.edit-cancel-btn:hover { border-color: #c44; color: #c44; }
 </style>
 </head>
 <body>
 
-<!-- Starfield canvas -->
 <canvas id="starfield"></canvas>
+<canvas id="confetti-canvas"></canvas>
+
+<!-- Forest SVG silhouette -->
+<svg id="forest-bg" viewBox="0 0 1400 180" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+  <g fill="#1a4a1a">
+    <polygon points="70,180 100,80 130,180"/><polygon points="80,180 100,60 120,180"/>
+    <polygon points="160,180 195,70 230,180"/><polygon points="170,180 195,48 220,180"/>
+    <polygon points="260,180 290,90 320,180"/><polygon points="268,180 290,68 312,180"/>
+    <polygon points="350,180 385,55 420,180"/><polygon points="360,180 385,35 410,180"/>
+    <polygon points="450,180 478,85 506,180"/><polygon points="458,180 478,65 498,180"/>
+    <polygon points="540,180 575,45 610,180"/><polygon points="550,180 575,25 600,180"/>
+    <polygon points="640,180 668,78 696,180"/><polygon points="648,180 668,58 688,180"/>
+    <polygon points="730,180 762,50 794,180"/><polygon points="740,180 762,30 784,180"/>
+    <polygon points="830,180 858,88 886,180"/><polygon points="838,180 858,68 878,180"/>
+    <polygon points="920,180 952,42 984,180"/><polygon points="930,180 952,22 974,180"/>
+    <polygon points="1020,180 1048,82 1076,180"/><polygon points="1028,180 1048,62 1068,180"/>
+    <polygon points="1110,180 1142,48 1174,180"/><polygon points="1120,180 1142,28 1164,180"/>
+    <polygon points="1210,180 1238,75 1266,180"/><polygon points="1218,180 1238,55 1258,180"/>
+    <polygon points="1300,180 1330,58 1360,180"/><polygon points="1308,180 1330,38 1352,180"/>
+  </g>
+</svg>
 
 <div id="header">
-  <div class="camp-name">&#127795; Camp Koronis &#127795;</div>
-  <h1>Jeopardy!</h1>
-  <p id="subtitle">Click a dollar amount to begin &nbsp;&mdash;&nbsp; click a player name to set as active</p>
+  <div class="header-inner">
+    <svg class="header-trees" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="24,4 36,28 12,28" fill="#3a8a3a"/>
+      <polygon points="24,14 38,36 10,36" fill="#2a7a2a"/>
+      <rect x="21" y="36" width="6" height="8" fill="#5a3a1a"/>
+      <polygon points="8,12 16,30 0,30" fill="#2a6a2a" opacity="0.7"/>
+      <polygon points="40,12 48,30 32,30" fill="#2a6a2a" opacity="0.7"/>
+    </svg>
+    <div class="header-text">
+      <div class="camp-name">Camp Koronis</div>
+      <h1>Jeopardy!</h1>
+    </div>
+    <svg class="header-trees" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1)">
+      <polygon points="24,4 36,28 12,28" fill="#3a8a3a"/>
+      <polygon points="24,14 38,36 10,36" fill="#2a7a2a"/>
+      <rect x="21" y="36" width="6" height="8" fill="#5a3a1a"/>
+      <polygon points="8,12 16,30 0,30" fill="#2a6a2a" opacity="0.7"/>
+      <polygon points="40,12 48,30 32,30" fill="#2a6a2a" opacity="0.7"/>
+    </svg>
+  </div>
+  <p>Click a dollar amount &mdash; click a player name to set active</p>
 </div>
 
 <div id="main">
@@ -551,18 +758,16 @@
   <div id="sidebar">
     <div id="host-panel">
       <canvas id="host-canvas"></canvas>
-      <div id="host-label">Camp Host</div>
+      <div id="host-label">Host Placeholder</div>
     </div>
     <div id="scoreboard">
       <h2>Scoreboard</h2>
       <div id="player-list"></div>
       <div id="add-player-area">
-        <input type="text" id="player-name-input" placeholder="Player / team name" maxlength="24" />
+        <input type="text" id="player-name-input" placeholder="Player / team name" maxlength="24"/>
         <button id="add-player-btn">+ Add Player</button>
       </div>
-      <div id="scoreboard-footer">
-        Click a player name<br>to mark them active
-      </div>
+      <div id="scoreboard-footer">Click a name to mark active player</div>
     </div>
   </div>
 </div>
@@ -586,22 +791,21 @@
       <button class="modal-btn" id="close-btn">Close</button>
     </div>
     <div id="award-section">
-      <p>Award or deduct points:</p>
+      <p>Award Points</p>
       <div id="award-buttons"></div>
     </div>
   </div>
 </div>
 
-<!-- Daily Double Splash -->
+<!-- Daily Double -->
 <div id="dd-overlay">
   <div id="dd-box">
-    <div class="dd-campfire">&#128293;</div>
     <h2>Daily Double!</h2>
-    <p class="dd-sub">Click anywhere to continue</p>
+    <div class="dd-stars">&#9733; &#9733; &#9733;</div>
+    <p>Click anywhere to continue</p>
   </div>
 </div>
 
-<!-- Edit Button -->
 <button id="edit-btn">Edit Questions</button>
 
 <!-- Edit Modal -->
@@ -617,272 +821,55 @@
 </div>
 
 <script>
-// ── Starfield ──
-(function() {
-  const canvas = document.getElementById('starfield');
-  const ctx = canvas.getContext('2d');
-  let stars = [];
-
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-
-  function initStars(n) {
-    stars = [];
-    for (let i = 0; i < n; i++) {
-      stars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.2 + 0.2,
-        alpha: Math.random() * 0.7 + 0.1,
-        speed: Math.random() * 0.3 + 0.05,
-        phase: Math.random() * Math.PI * 2
-      });
-    }
-  }
-
-  let t = 0;
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    t += 0.012;
-    stars.forEach(s => {
-      const a = s.alpha * (0.6 + 0.4 * Math.sin(t * s.speed + s.phase));
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(200,230,200,${a})`;
-      ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-
-  window.addEventListener('resize', () => { resize(); initStars(200); });
-  resize();
-  initStars(200);
-  draw();
-})();
-
-// ── Three.js Campfire ──
-(function() {
-  const panel = document.getElementById('host-panel');
-  const canvas = document.getElementById('host-canvas');
-
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setClearColor(0x0a1a0d, 1);
-
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x0a1a0d, 0.18);
-
-  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-  camera.position.set(0, 1.4, 3.5);
-  camera.lookAt(0, 0.4, 0);
-
-  // Ground
-  const groundGeo = new THREE.CircleGeometry(2.5, 32);
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0x0d1a08 });
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.01;
-  scene.add(ground);
-
-  // Log pile — two crossing cylinders
-  const logMat = new THREE.MeshLambertMaterial({ color: 0x3a2010 });
-  function makeLog(rx, ry, rz) {
-    const geo = new THREE.CylinderGeometry(0.08, 0.1, 0.9, 8);
-    const m = new THREE.Mesh(geo, logMat);
-    m.rotation.set(rx, ry, rz);
-    m.position.y = 0.06;
-    return m;
-  }
-  scene.add(makeLog(0, 0, Math.PI / 2));
-  scene.add(makeLog(0, Math.PI / 2, Math.PI / 2));
-
-  // Flame cone
-  const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.85 });
-  const flameCone = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.7, 8), flameMat);
-  flameCone.position.y = 0.45;
-  scene.add(flameCone);
-
-  const innerFlameMat = new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0.9 });
-  const innerFlame = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.5, 8), innerFlameMat);
-  innerFlame.position.y = 0.45;
-  scene.add(innerFlame);
-
-  // Embers — small glowing spheres
-  const embers = [];
-  const emberMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
-  for (let i = 0; i < 14; i++) {
-    const e = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 5), emberMat);
-    const angle = Math.random() * Math.PI * 2;
-    const rad = Math.random() * 0.5;
-    e.position.set(Math.cos(angle) * rad, 0.3 + Math.random() * 1.0, Math.sin(angle) * rad);
-    e.userData = {
-      angle, speed: 0.5 + Math.random() * 1.5,
-      rise: 0.004 + Math.random() * 0.008,
-      startY: e.position.y,
-      maxY: e.position.y + 0.6 + Math.random() * 0.6,
-      phase: Math.random() * Math.PI * 2
-    };
-    embers.push(e);
-    scene.add(e);
-  }
-
-  // Point light (flickering fire)
-  const fireLight = new THREE.PointLight(0xff6600, 2.5, 4);
-  fireLight.position.set(0, 0.7, 0);
-  scene.add(fireLight);
-
-  // Ambient
-  const ambient = new THREE.AmbientLight(0x0a1a0d, 1.2);
-  scene.add(ambient);
-
-  // Trees in background — simple cone+cylinder silhouettes
-  const treeMat = new THREE.MeshLambertMaterial({ color: 0x0d2a10 });
-  function makeTree(x, z, h) {
-    const g = new THREE.Group();
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, h * 0.3, 6), treeMat);
-    trunk.position.y = h * 0.15;
-    const top = new THREE.Mesh(new THREE.ConeGeometry(h * 0.22, h * 0.8, 7), treeMat);
-    top.position.y = h * 0.6;
-    g.add(trunk, top);
-    g.position.set(x, 0, z);
-    return g;
-  }
-  [[-1.8, -1.2, 1.4], [1.9, -1.0, 1.6], [-2.2, -0.5, 1.2], [2.4, -0.4, 1.3],
-   [-1.2, -2.0, 1.5], [1.3, -2.1, 1.7]].forEach(([x, z, h]) => scene.add(makeTree(x, z, h)));
-
-  // Stars in scene background
-  const starGeo = new THREE.BufferGeometry();
-  const starPos = [];
-  for (let i = 0; i < 120; i++) {
-    const theta = Math.random() * Math.PI;
-    const phi = Math.random() * Math.PI * 2;
-    const r = 8 + Math.random() * 4;
-    starPos.push(r * Math.sin(theta) * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta));
-  }
-  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-  const starMat = new THREE.PointsMaterial({ color: 0xaaffaa, size: 0.05, transparent: true, opacity: 0.8 });
-  scene.add(new THREE.Points(starGeo, starMat));
-
-  function resizeRenderer() {
-    const w = panel.clientWidth;
-    const h = panel.clientHeight;
-    if (w > 0 && h > 0) {
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
-  }
-
-  const ro = new ResizeObserver(resizeRenderer);
-  ro.observe(panel);
-  resizeRenderer();
-
-  let frame = 0;
-  function animate() {
-    requestAnimationFrame(animate);
-    frame++;
-    const t = frame * 0.04;
-
-    // Flicker flame
-    const flicker = 0.85 + 0.15 * Math.sin(t * 7.3) + 0.07 * Math.sin(t * 13.1);
-    flameCone.scale.set(flicker, 0.9 + 0.1 * Math.sin(t * 5.2), flicker);
-    flameCone.position.y = 0.45 + 0.03 * Math.sin(t * 6);
-    innerFlame.scale.set(flicker * 0.9, 0.95 + 0.05 * Math.sin(t * 8), flicker * 0.9);
-
-    fireLight.intensity = 2.2 + 0.6 * Math.sin(t * 11) + 0.3 * Math.sin(t * 7.5);
-    fireLight.color.setHSL(0.06 + 0.02 * Math.sin(t * 3), 1, 0.5);
-
-    // Embers float up and reset
-    embers.forEach(e => {
-      e.position.y += e.userData.rise;
-      e.position.x += 0.002 * Math.sin(t * e.userData.speed + e.userData.phase);
-      const fade = 1 - (e.position.y - e.userData.startY) / (e.userData.maxY - e.userData.startY);
-      e.material.opacity = Math.max(0, fade);
-      if (e.position.y > e.userData.maxY) {
-        const angle = Math.random() * Math.PI * 2;
-        const rad = Math.random() * 0.3;
-        e.position.set(Math.cos(angle) * rad, 0.3 + Math.random() * 0.2, Math.sin(angle) * rad);
-        e.userData.startY = e.position.y;
-        e.userData.maxY = e.position.y + 0.6 + Math.random() * 0.5;
-      }
-    });
-
-    renderer.render(scene, camera);
-  }
-  animate();
-})();
-
-// ── Default Game Data ──
+// ── Game Data ──
 const DEFAULT_DATA = {
   categories: [
-    {
-      name: "Camp History",
-      clues: [
-        { q: "This is a sample clue for 200 points. Replace this with your own question.", a: "Sample Answer", dd: false },
-        { q: "This is a sample clue for 400 points.", a: "Sample Answer", dd: false },
-        { q: "This is a sample clue for 600 points.", a: "Sample Answer", dd: true },
-        { q: "This is a sample clue for 800 points.", a: "Sample Answer", dd: false },
-        { q: "This is a sample clue for 1000 points.", a: "Sample Answer", dd: false },
-      ]
-    },
-    {
-      name: "Safety Rules",
-      clues: [
-        { q: "Sample 200-point question about safety.", a: "Sample Answer", dd: false },
-        { q: "Sample 400-point question about safety.", a: "Sample Answer", dd: false },
-        { q: "Sample 600-point question about safety.", a: "Sample Answer", dd: false },
-        { q: "Sample 800-point question about safety.", a: "Sample Answer", dd: false },
-        { q: "Sample 1000-point question about safety.", a: "Sample Answer", dd: true },
-      ]
-    },
-    {
-      name: "Policies & Procedures",
-      clues: [
-        { q: "Sample 200-point policy question.", a: "Sample Answer", dd: false },
-        { q: "Sample 400-point policy question.", a: "Sample Answer", dd: false },
-        { q: "Sample 600-point policy question.", a: "Sample Answer", dd: false },
-        { q: "Sample 800-point policy question.", a: "Sample Answer", dd: false },
-        { q: "Sample 1000-point policy question.", a: "Sample Answer", dd: false },
-      ]
-    },
-    {
-      name: "Team & Roles",
-      clues: [
-        { q: "Sample 200-point team question.", a: "Sample Answer", dd: false },
-        { q: "Sample 400-point team question.", a: "Sample Answer", dd: false },
-        { q: "Sample 600-point team question.", a: "Sample Answer", dd: false },
-        { q: "Sample 800-point team question.", a: "Sample Answer", dd: false },
-        { q: "Sample 1000-point team question.", a: "Sample Answer", dd: false },
-      ]
-    },
-    {
-      name: "Guest Experience",
-      clues: [
-        { q: "Sample 200-point guest-experience question.", a: "Sample Answer", dd: false },
-        { q: "Sample 400-point guest-experience question.", a: "Sample Answer", dd: false },
-        { q: "Sample 600-point guest-experience question.", a: "Sample Answer", dd: false },
-        { q: "Sample 800-point guest-experience question.", a: "Sample Answer", dd: true },
-        { q: "Sample 1000-point guest-experience question.", a: "Sample Answer", dd: false },
-      ]
-    },
-    {
-      name: "Miscellaneous",
-      clues: [
-        { q: "Sample 200-point misc question.", a: "Sample Answer", dd: false },
-        { q: "Sample 400-point misc question.", a: "Sample Answer", dd: false },
-        { q: "Sample 600-point misc question.", a: "Sample Answer", dd: false },
-        { q: "Sample 800-point misc question.", a: "Sample Answer", dd: false },
-        { q: "Sample 1000-point misc question.", a: "Sample Answer", dd: false },
-      ]
-    },
+    { name: "Camp History", clues: [
+      { q: "Replace this with your own clue for $200.", a: "Sample Answer", dd: false },
+      { q: "Replace this with your own clue for $400.", a: "Sample Answer", dd: false },
+      { q: "Replace this with your own clue for $600.", a: "Sample Answer", dd: true },
+      { q: "Replace this with your own clue for $800.", a: "Sample Answer", dd: false },
+      { q: "Replace this with your own clue for $1000.", a: "Sample Answer", dd: false },
+    ]},
+    { name: "Safety Rules", clues: [
+      { q: "Sample $200 safety question.", a: "Sample Answer", dd: false },
+      { q: "Sample $400 safety question.", a: "Sample Answer", dd: false },
+      { q: "Sample $600 safety question.", a: "Sample Answer", dd: false },
+      { q: "Sample $800 safety question.", a: "Sample Answer", dd: false },
+      { q: "Sample $1000 safety question.", a: "Sample Answer", dd: true },
+    ]},
+    { name: "Policies & Procedures", clues: [
+      { q: "Sample $200 policy question.", a: "Sample Answer", dd: false },
+      { q: "Sample $400 policy question.", a: "Sample Answer", dd: false },
+      { q: "Sample $600 policy question.", a: "Sample Answer", dd: false },
+      { q: "Sample $800 policy question.", a: "Sample Answer", dd: false },
+      { q: "Sample $1000 policy question.", a: "Sample Answer", dd: false },
+    ]},
+    { name: "Team & Roles", clues: [
+      { q: "Sample $200 team question.", a: "Sample Answer", dd: false },
+      { q: "Sample $400 team question.", a: "Sample Answer", dd: false },
+      { q: "Sample $600 team question.", a: "Sample Answer", dd: false },
+      { q: "Sample $800 team question.", a: "Sample Answer", dd: false },
+      { q: "Sample $1000 team question.", a: "Sample Answer", dd: false },
+    ]},
+    { name: "Guest Experience", clues: [
+      { q: "Sample $200 guest experience question.", a: "Sample Answer", dd: false },
+      { q: "Sample $400 guest experience question.", a: "Sample Answer", dd: false },
+      { q: "Sample $600 guest experience question.", a: "Sample Answer", dd: false },
+      { q: "Sample $800 guest experience question.", a: "Sample Answer", dd: true },
+      { q: "Sample $1000 guest experience question.", a: "Sample Answer", dd: false },
+    ]},
+    { name: "Miscellaneous", clues: [
+      { q: "Sample $200 misc question.", a: "Sample Answer", dd: false },
+      { q: "Sample $400 misc question.", a: "Sample Answer", dd: false },
+      { q: "Sample $600 misc question.", a: "Sample Answer", dd: false },
+      { q: "Sample $800 misc question.", a: "Sample Answer", dd: false },
+      { q: "Sample $1000 misc question.", a: "Sample Answer", dd: false },
+    ]},
   ]
 };
 
 const VALUES = [200, 400, 600, 800, 1000];
-
-// ── State ──
 let gameData = JSON.parse(JSON.stringify(DEFAULT_DATA));
 let usedCells = {};
 let players = [];
@@ -911,30 +898,165 @@ function load() {
   } catch(e) {}
 }
 
+// ── Audio (Web Audio API synth) ──
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, type, duration, gainVal, delay=0) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + delay);
+    gain.gain.setValueAtTime(gainVal, ctx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration);
+  } catch(e) {}
+}
+function soundClick() {
+  playTone(440, 'sine', 0.12, 0.15);
+  playTone(660, 'sine', 0.08, 0.1, 0.05);
+}
+function soundReveal() {
+  playTone(523, 'sine', 0.15, 0.12);
+  playTone(659, 'sine', 0.15, 0.12, 0.1);
+  playTone(784, 'sine', 0.3, 0.12, 0.2);
+}
+function soundCorrect() {
+  playTone(523, 'sine', 0.1, 0.18);
+  playTone(659, 'sine', 0.1, 0.18, 0.1);
+  playTone(784, 'sine', 0.1, 0.18, 0.2);
+  playTone(1047,'sine', 0.4, 0.2, 0.3);
+}
+function soundWrong() {
+  playTone(200, 'sawtooth', 0.25, 0.2);
+  playTone(150, 'sawtooth', 0.25, 0.2, 0.2);
+}
+function soundDailyDouble() {
+  [523,659,784,1047,1319].forEach((f,i) => playTone(f,'sine',0.18,0.2,i*0.12));
+}
+
+// ── Starfield ──
+(function() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    stars = Array.from({length: 180}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.3 + 0.2,
+      a: Math.random(),
+      speed: Math.random() * 0.008 + 0.002,
+      phase: Math.random() * Math.PI * 2
+    }));
+  }
+  function draw(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,220,255,${alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(draw);
+})();
+
+// ── Confetti ──
+const confettiCanvas = document.getElementById('confetti-canvas');
+const confettiCtx = confettiCanvas.getContext('2d');
+confettiCanvas.width = window.innerWidth;
+confettiCanvas.height = window.innerHeight;
+window.addEventListener('resize', () => {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+});
+let confettiParticles = [];
+function launchConfetti() {
+  const colors = ['#f5d252','#7eff9a','#60aaff','#ff7070','#ff9f40','#ff70d0'];
+  for (let i = 0; i < 80; i++) {
+    confettiParticles.push({
+      x: window.innerWidth / 2 + (Math.random()-0.5)*400,
+      y: window.innerHeight * 0.4,
+      vx: (Math.random()-0.5)*10,
+      vy: -Math.random()*8 - 4,
+      r: Math.random()*5+3,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      rot: Math.random()*360,
+      rotV: (Math.random()-0.5)*8,
+      life: 1
+    });
+  }
+  animateConfetti();
+}
+function animateConfetti() {
+  confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confettiParticles = confettiParticles.filter(p => p.life > 0);
+  confettiParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.3;
+    p.rot += p.rotV; p.life -= 0.012;
+    confettiCtx.save();
+    confettiCtx.translate(p.x, p.y);
+    confettiCtx.rotate(p.rot * Math.PI/180);
+    confettiCtx.globalAlpha = Math.max(0, p.life);
+    confettiCtx.fillStyle = p.color;
+    confettiCtx.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+    confettiCtx.restore();
+  });
+  if (confettiParticles.length > 0) requestAnimationFrame(animateConfetti);
+}
+
+// ── Floating score indicator ──
+function showScorePop(delta, x, y) {
+  const el = document.createElement('div');
+  el.className = 'score-pop';
+  el.textContent = (delta > 0 ? '+' : '') + '$' + Math.abs(delta).toLocaleString();
+  el.style.color = delta > 0 ? '#7eff9a' : '#ff7070';
+  el.style.left = (x - 40) + 'px';
+  el.style.top = (y - 20) + 'px';
+  el.style.textShadow = `0 0 12px ${delta > 0 ? '#00ff44' : '#ff2200'}`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
 // ── Board ──
 function buildBoard() {
   const board = document.getElementById('board');
   const cols = gameData.categories.length;
   board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
   board.innerHTML = '';
-
   gameData.categories.forEach(cat => {
     const cell = document.createElement('div');
     cell.className = 'cat-cell';
     cell.textContent = cat.name;
     board.appendChild(cell);
   });
-
   VALUES.forEach((val, ri) => {
     gameData.categories.forEach((cat, ci) => {
       const key = `${ci}-${ri}`;
       const cell = document.createElement('div');
       cell.className = 'clue-cell' + (usedCells[key] ? ' used' : '');
-      cell.textContent = usedCells[key] ? '' : `$${val}`;
-      cell.dataset.cat = ci;
-      cell.dataset.row = ri;
+      cell.textContent = usedCells[key] ? '' : `$${val.toLocaleString()}`;
+      cell.dataset.cat = ci; cell.dataset.row = ri;
       if (!usedCells[key]) {
-        cell.addEventListener('click', () => openClue(ci, ri));
+        cell.addEventListener('click', () => {
+          cell.classList.add('flipping');
+          setTimeout(() => cell.classList.remove('flipping'), 400);
+          soundClick();
+          openClue(ci, ri);
+        });
       }
       board.appendChild(cell);
     });
@@ -949,6 +1071,7 @@ function openClue(ci, ri) {
   const key = `${ci}-${ri}`;
   currentClue = { ci, ri, val, key };
   if (clue.dd) {
+    soundDailyDouble();
     showDailyDouble(() => openModal(cat, clue, val));
   } else {
     openModal(cat, clue, val);
@@ -957,7 +1080,7 @@ function openClue(ci, ri) {
 
 function openModal(cat, clue, val) {
   document.getElementById('modal-cat').textContent = cat.name;
-  document.getElementById('modal-value').textContent = `$${val}`;
+  document.getElementById('modal-value').textContent = `$${val.toLocaleString()}`;
   document.getElementById('modal-clue').textContent = clue.q;
   document.getElementById('answer-text').textContent = clue.a;
   document.getElementById('modal-answer').classList.remove('visible');
@@ -971,60 +1094,64 @@ function buildAwardButtons(val) {
   const container = document.getElementById('award-buttons');
   container.innerHTML = '';
   if (!players.length) {
-    container.innerHTML = '<span style="color:#4a7a4a;font-size:0.78rem;">Add players to award points</span>';
+    container.innerHTML = '<span style="color:#446;font-size:0.75rem;font-family:Roboto Condensed,sans-serif;">Add players to award points</span>';
     return;
   }
   players.forEach(p => {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:4px;align-items:center;margin-bottom:4px;';
-
+    row.className = 'award-row';
     const name = document.createElement('span');
+    name.className = 'award-name';
     name.textContent = p.name;
-    name.style.cssText = 'font-size:0.78rem;color:#cce;min-width:80px;text-align:left;';
-
     const correct = document.createElement('button');
     correct.className = 'award-btn correct';
-    correct.textContent = `+$${val}`;
-    correct.onclick = () => { adjustScore(p.name, val); closeModal(); };
-
+    correct.textContent = `+$${val.toLocaleString()}`;
+    correct.onclick = (e) => {
+      adjustScore(p.name, val);
+      showScorePop(val, e.clientX, e.clientY);
+      soundCorrect();
+      launchConfetti();
+      closeModal();
+    };
     const wrong = document.createElement('button');
     wrong.className = 'award-btn wrong';
-    wrong.textContent = `-$${val}`;
-    wrong.onclick = () => { adjustScore(p.name, -val); };
-
+    wrong.textContent = `-$${val.toLocaleString()}`;
+    wrong.onclick = (e) => {
+      adjustScore(p.name, -val);
+      showScorePop(-val, e.clientX, e.clientY);
+      soundWrong();
+    };
     row.append(name, correct, wrong);
     container.appendChild(row);
   });
 }
 
 document.getElementById('reveal-btn').onclick = () => {
+  soundReveal();
   document.getElementById('modal-answer').classList.add('visible');
   document.getElementById('award-section').classList.add('visible');
   document.getElementById('reveal-btn').style.display = 'none';
 };
-
 document.getElementById('close-btn').onclick = closeModal;
 
 function closeModal() {
   if (currentClue) {
     usedCells[currentClue.key] = true;
-    save();
-    buildBoard();
+    save(); buildBoard();
   }
   currentClue = null;
   document.getElementById('overlay').classList.remove('open');
 }
+document.getElementById('overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('overlay')) closeModal();
+});
 
 // ── Daily Double ──
 function showDailyDouble(cb) {
   const dd = document.getElementById('dd-overlay');
   dd.classList.add('open');
-  const dismiss = () => {
-    dd.classList.remove('open');
-    dd.removeEventListener('click', dismiss);
-    cb();
-  };
-  dd.addEventListener('click', dismiss);
+  const dismiss = () => { dd.classList.remove('open'); dd.removeEventListener('click', dismiss); cb(); };
+  setTimeout(() => dd.addEventListener('click', dismiss), 400);
 }
 
 // ── Players ──
@@ -1034,35 +1161,23 @@ function renderPlayers() {
   players.forEach(p => {
     const row = document.createElement('div');
     row.className = 'player-row' + (p.name === activePlayer ? ' active-player' : '');
-
     const name = document.createElement('div');
     name.className = 'player-name';
     name.textContent = p.name;
-    name.style.cursor = 'pointer';
     name.title = 'Set as active player';
     name.onclick = () => { activePlayer = p.name; save(); renderPlayers(); };
-
     const score = document.createElement('div');
-    score.className = 'player-score';
-    score.textContent = `$${p.score.toLocaleString()}`;
-    if (p.score < 0) score.style.color = '#ff8888';
-
+    score.className = 'player-score' + (p.score < 0 ? ' negative' : '');
+    score.textContent = `$${Math.abs(p.score).toLocaleString()}`;
+    if (p.score < 0) score.textContent = `-$${Math.abs(p.score).toLocaleString()}`;
     const plus = document.createElement('button');
-    plus.className = 'score-btn';
-    plus.textContent = '+';
-    plus.title = 'Add 100';
-    plus.onclick = () => { adjustScore(p.name, 100); };
-
+    plus.className = 'score-btn'; plus.textContent = '+'; plus.title = 'Add 100';
+    plus.onclick = () => adjustScore(p.name, 100);
     const minus = document.createElement('button');
-    minus.className = 'score-btn';
-    minus.textContent = '−';
-    minus.title = 'Subtract 100';
-    minus.onclick = () => { adjustScore(p.name, -100); };
-
+    minus.className = 'score-btn'; minus.textContent = '−'; minus.title = 'Subtract 100';
+    minus.onclick = () => adjustScore(p.name, -100);
     const del = document.createElement('button');
-    del.className = 'score-btn del-btn';
-    del.textContent = '×';
-    del.title = 'Remove player';
+    del.className = 'score-btn del-btn'; del.textContent = '×'; del.title = 'Remove';
     del.onclick = () => {
       if (confirm(`Remove ${p.name}?`)) {
         players = players.filter(x => x.name !== p.name);
@@ -1070,7 +1185,6 @@ function renderPlayers() {
         save(); renderPlayers();
       }
     };
-
     row.append(name, score, plus, minus, del);
     list.appendChild(row);
   });
@@ -1082,9 +1196,7 @@ function adjustScore(name, delta) {
 }
 
 document.getElementById('add-player-btn').onclick = addPlayer;
-document.getElementById('player-name-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addPlayer();
-});
+document.getElementById('player-name-input').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
 function addPlayer() {
   const inp = document.getElementById('player-name-input');
   const name = inp.value.trim();
@@ -1093,119 +1205,201 @@ function addPlayer() {
   players.push({ name, score: 0 });
   if (!activePlayer) activePlayer = name;
   inp.value = '';
-  save();
-  renderPlayers();
+  save(); renderPlayers();
   if (currentClue) buildAwardButtons(currentClue.val);
 }
 
 // ── Reset ──
 document.getElementById('reset-btn').onclick = () => {
-  if (confirm('Reset the board? (Scores are kept.)')) {
-    usedCells = {};
-    save();
-    buildBoard();
-  }
+  if (confirm('Reset the board? Scores are kept.')) { usedCells = {}; save(); buildBoard(); }
 };
 
 // ── Edit Modal ──
 document.getElementById('edit-btn').onclick = openEdit;
-document.getElementById('edit-cancel-btn').onclick = () => {
-  document.getElementById('edit-overlay').classList.remove('open');
-};
+document.getElementById('edit-cancel-btn').onclick = () => document.getElementById('edit-overlay').classList.remove('open');
 
 function openEdit() {
   const form = document.getElementById('edit-form');
   form.innerHTML = '';
-
-  const colHeader = document.createElement('div');
-  colHeader.style.cssText = 'display:grid;grid-template-columns:60px 1fr 1fr 90px;gap:6px;margin-bottom:4px;';
-  colHeader.innerHTML = `
-    <div class="edit-col-label">Value</div>
-    <div class="edit-col-label">Clue (read aloud)</div>
-    <div class="edit-col-label">Answer</div>
-    <div class="edit-col-label">Daily Double?</div>
-  `;
-
   gameData.categories.forEach((cat, ci) => {
     const block = document.createElement('div');
     block.className = 'edit-category-block';
-
-    const catLabel = document.createElement('label');
-    catLabel.textContent = `Category ${ci + 1} name`;
+    block.innerHTML = `<label>Category ${ci+1} Name</label>`;
     const catInput = document.createElement('input');
-    catInput.type = 'text';
-    catInput.value = cat.name;
-    catInput.dataset.ci = ci;
-    catInput.className = 'cat-name-input';
-
-    block.append(catLabel, catInput, colHeader.cloneNode(true));
-
+    catInput.type = 'text'; catInput.value = cat.name;
+    catInput.className = 'cat-name-input'; catInput.dataset.ci = ci;
+    block.appendChild(catInput);
+    const colLabels = document.createElement('div');
+    colLabels.className = 'edit-col-labels';
+    colLabels.innerHTML = '<div class="edit-col-label">Value</div><div class="edit-col-label">Clue (read aloud)</div><div class="edit-col-label">Answer</div><div class="edit-col-label">Daily Double?</div>';
+    block.appendChild(colLabels);
     cat.clues.forEach((clue, ri) => {
       const row = document.createElement('div');
       row.className = 'edit-row';
-
-      const valSpan = document.createElement('span');
-      valSpan.textContent = `$${VALUES[ri]}`;
-
-      const qInput = document.createElement('input');
-      qInput.type = 'text';
-      qInput.value = clue.q;
-      qInput.placeholder = 'Clue text...';
-      qInput.dataset.ci = ci;
-      qInput.dataset.ri = ri;
-      qInput.className = 'clue-q-input';
-
-      const aInput = document.createElement('input');
-      aInput.type = 'text';
-      aInput.value = clue.a;
-      aInput.placeholder = 'Answer...';
-      aInput.dataset.ci = ci;
-      aInput.dataset.ri = ri;
-      aInput.className = 'clue-a-input';
-
-      const ddSel = document.createElement('select');
-      ddSel.dataset.ci = ci;
-      ddSel.dataset.ri = ri;
-      ddSel.className = 'clue-dd-input';
-      ddSel.innerHTML = `<option value="0">No</option><option value="1">Yes</option>`;
-      ddSel.value = clue.dd ? '1' : '0';
-
-      row.append(valSpan, qInput, aInput, ddSel);
+      const val = document.createElement('span'); val.textContent = `$${VALUES[ri]}`;
+      const qIn = document.createElement('input'); qIn.type='text'; qIn.value=clue.q; qIn.placeholder='Clue...'; qIn.className='clue-q-input'; qIn.dataset.ci=ci; qIn.dataset.ri=ri;
+      const aIn = document.createElement('input'); aIn.type='text'; aIn.value=clue.a; aIn.placeholder='Answer...'; aIn.className='clue-a-input'; aIn.dataset.ci=ci; aIn.dataset.ri=ri;
+      const dd = document.createElement('select'); dd.className='clue-dd-input'; dd.dataset.ci=ci; dd.dataset.ri=ri;
+      dd.innerHTML = '<option value="0">No</option><option value="1">Yes</option>';
+      dd.value = clue.dd ? '1' : '0';
+      row.append(val, qIn, aIn, dd);
       block.appendChild(row);
     });
-
     form.appendChild(block);
   });
-
   document.getElementById('edit-overlay').classList.add('open');
 }
 
 document.getElementById('edit-save-btn').onclick = () => {
   document.querySelectorAll('.cat-name-input').forEach(inp => {
-    const ci = parseInt(inp.dataset.ci);
-    gameData.categories[ci].name = inp.value.trim() || gameData.categories[ci].name;
+    gameData.categories[+inp.dataset.ci].name = inp.value.trim() || gameData.categories[+inp.dataset.ci].name;
   });
   document.querySelectorAll('.clue-q-input').forEach(inp => {
-    const ci = parseInt(inp.dataset.ci), ri = parseInt(inp.dataset.ri);
-    gameData.categories[ci].clues[ri].q = inp.value.trim();
+    gameData.categories[+inp.dataset.ci].clues[+inp.dataset.ri].q = inp.value.trim();
   });
   document.querySelectorAll('.clue-a-input').forEach(inp => {
-    const ci = parseInt(inp.dataset.ci), ri = parseInt(inp.dataset.ri);
-    gameData.categories[ci].clues[ri].a = inp.value.trim();
+    gameData.categories[+inp.dataset.ci].clues[+inp.dataset.ri].a = inp.value.trim();
   });
   document.querySelectorAll('.clue-dd-input').forEach(sel => {
-    const ci = parseInt(sel.dataset.ci), ri = parseInt(sel.dataset.ri);
-    gameData.categories[ci].clues[ri].dd = sel.value === '1';
+    gameData.categories[+sel.dataset.ci].clues[+sel.dataset.ri].dd = sel.value === '1';
   });
-  save();
-  buildBoard();
+  save(); buildBoard();
   document.getElementById('edit-overlay').classList.remove('open');
 };
 
-// ── Overlay click-outside ──
-document.getElementById('overlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('overlay')) closeModal();
-});
+// ── Three.js Campfire ──
+(function() {
+  const canvas = document.getElementById('host-canvas');
+  const panel = document.getElementById('host-panel');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.shadowMap.enabled = true;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050f07);
+  scene.fog = new THREE.FogExp2(0x050f07, 0.08);
+
+  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+  camera.position.set(0, 2.5, 6);
+  camera.lookAt(0, 1, 0);
+
+  // Ground
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(10, 32),
+    new THREE.MeshLambertMaterial({ color: 0x0a1a0a })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Log pile
+  const logMat = new THREE.MeshLambertMaterial({ color: 0x3d1f0a });
+  [[-0.3, 0, 0, 0.3], [0.3, 0, 0, -0.3], [0, 0, -0.3, 0.1]].forEach(([x,y,z,r]) => {
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 1.1, 8), logMat);
+    log.position.set(x, y + 0.08, z);
+    log.rotation.z = r;
+    log.castShadow = true;
+    scene.add(log);
+  });
+
+  // Flame cones
+  const flameMat1 = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.85 });
+  const flameMat2 = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.7 });
+  const flameMat3 = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9 });
+  const flames = [];
+  [[0,0.1,0, 0.22,0.9, flameMat1],[-.18,0.05,.1, 0.14,0.6, flameMat2],[.16,0.05,-.1, 0.16,0.7, flameMat2],[0,0.15,0, 0.1,0.5, flameMat3]].forEach(([x,y,z,r,h,mat]) => {
+    const f = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8), mat);
+    f.position.set(x, y + h/2, z);
+    flames.push({ mesh: f, baseY: y + h/2, h });
+    scene.add(f);
+  });
+
+  // Embers
+  const emberGeo = new THREE.SphereGeometry(0.04, 4, 4);
+  const embers = Array.from({ length: 18 }, (_, i) => {
+    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setHSL(0.06 + Math.random()*0.05, 1, 0.5 + Math.random()*0.3) });
+    const m = new THREE.Mesh(emberGeo, mat);
+    const angle = Math.random() * Math.PI * 2;
+    m.position.set(Math.cos(angle)*0.3, 0.3+Math.random()*0.8, Math.sin(angle)*0.3);
+    scene.add(m);
+    return { mesh: m, speed: 0.015+Math.random()*0.025, offset: Math.random()*Math.PI*2, radius: 0.1+Math.random()*0.25, life: Math.random() };
+  });
+
+  // Pine trees in background
+  const treeMat = new THREE.MeshLambertMaterial({ color: 0x0d3a0d });
+  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x2a1505 });
+  [[-3.5,0,-4,1.4,2.2],[3.2,0,-4,1.2,2],[−2,0,-5,1.8,2.8],[2.8,0,-5.5,1.5,2.5],[−4.5,0,-5,1,1.8],[4.5,0,-4.5,1.1,1.9]].forEach(([x,y,z,s,h]) => {
+    if (isNaN(x)) return;
+    const tree = new THREE.Mesh(new THREE.ConeGeometry(s*0.7, h, 7), treeMat);
+    tree.position.set(x, h/2, z);
+    scene.add(tree);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,0.5,6), trunkMat);
+    trunk.position.set(x, -0.1, z);
+    scene.add(trunk);
+  });
+
+  // Stars in 3D
+  const starGeo = new THREE.BufferGeometry();
+  const starVerts = [];
+  for (let i = 0; i < 300; i++) {
+    starVerts.push((Math.random()-0.5)*30, Math.random()*12+2, (Math.random()-0.5)*20 - 5);
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xaaccff, size: 0.08 })));
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x0a1a0a, 0.8));
+  const fireLight = new THREE.PointLight(0xff6600, 3, 8);
+  fireLight.position.set(0, 1.2, 0);
+  fireLight.castShadow = true;
+  scene.add(fireLight);
+  const moonLight = new THREE.DirectionalLight(0x203040, 0.4);
+  moonLight.position.set(-5, 8, 3);
+  scene.add(moonLight);
+
+  // Resize
+  function resize() {
+    const w = panel.clientWidth, h = panel.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(panel);
+  resize();
+
+  // Animate
+  let t = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    t += 0.04;
+    // flicker flames
+    flames.forEach((f, i) => {
+      const flicker = 1 + 0.15 * Math.sin(t*3 + i*1.5) + 0.08*Math.sin(t*7+i);
+      f.mesh.scale.set(flicker, flicker*1.1, flicker);
+      f.mesh.position.y = f.baseY + 0.06*Math.sin(t*4+i*2);
+      f.mesh.material.opacity = 0.7 + 0.25*Math.sin(t*5+i);
+    });
+    // flicker light
+    fireLight.intensity = 2.5 + 1.5*Math.sin(t*4.5) + 0.8*Math.sin(t*11);
+    fireLight.color.setHSL(0.06 + 0.02*Math.sin(t*3), 1, 0.5);
+    // embers float up
+    embers.forEach(e => {
+      e.life += e.speed;
+      if (e.life > 1) {
+        e.life = 0;
+        const angle = Math.random() * Math.PI * 2;
+        e.mesh.position.set(Math.cos(angle)*0.3, 0.2, Math.sin(angle)*0.3);
+        e.radius = 0.1 + Math.random()*0.25;
+      }
+      e.mesh.position.y += 0.025;
+      e.mesh.position.x += Math.sin(t*2 + e.offset) * 0.006;
+      e.mesh.material.opacity = Math.max(0, 1 - e.life);
+    });
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
 
 // ── Init ──
 load();
