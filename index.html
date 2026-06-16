@@ -1352,7 +1352,8 @@ function buildBoard() {
 }
 
 // ── Clue Modal ──
-let currentDD = null;   // { team, wager } when the open clue is a Daily Double
+let currentDD = null;     // { team, wager } when the open clue is a Daily Double
+let clueScored = false;   // did any team gain/lose points on the open clue?
 
 function openClue(ci, ri) {
   const cat = gameData.categories[ci];
@@ -1450,6 +1451,7 @@ function openModal(cat, clue, val) {
   // Big answer stays hidden from the room until "Reveal to Room" is pressed
   document.getElementById('modal-answer').classList.remove('visible');
   document.getElementById('reveal-btn').style.display = '';
+  clueScored = false;   // reset; a Close with no scoring leaves the square open
   // Award buttons are available immediately so a steal can be judged
   // without ever showing the answer on the main screen.
   document.getElementById('award-section').classList.add('visible');
@@ -1466,15 +1468,21 @@ function openModal(cat, clue, val) {
 
 // Pin the host panel in place and raise it above the overlay so it stays
 // visible while the clue modal is open. Reverts cleanly on close.
+let hostHome = null;  // remembers where the panel lives in the sidebar
 function liftHost() {
   const hp = document.getElementById('host-panel');
   const r = hp.getBoundingClientRect();
+  // Remember its original spot so we can put it back exactly
+  hostHome = { parent: hp.parentNode, next: hp.nextSibling };
   hp.style.position = 'fixed';
   hp.style.top = r.top + 'px';
   hp.style.left = r.left + 'px';
   hp.style.width = r.width + 'px';
   hp.style.height = r.height + 'px';
   hp.classList.add('lifted');
+  // Reparent to <body> so it escapes #main's stacking context and floats
+  // above the dark clue overlay (the panel keeps its WebGL canvas + context).
+  document.body.appendChild(hp);
   if (window.hostLit) window.hostLit(true);
 }
 function dropHost() {
@@ -1482,6 +1490,11 @@ function dropHost() {
   hp.classList.remove('lifted');
   hp.style.position = '';
   hp.style.top = hp.style.left = hp.style.width = hp.style.height = '';
+  // Return it to its original place in the sidebar
+  if (hostHome) {
+    hostHome.parent.insertBefore(hp, hostHome.next);
+    hostHome = null;
+  }
   if (window.hostLit) window.hostLit(false);
 }
 
@@ -1504,6 +1517,7 @@ function buildAwardButtons(val) {
     correct.className = 'award-btn correct';
     correct.textContent = `Correct +$${amt.toLocaleString()}`;
     correct.onclick = (e) => {
+      clueScored = true;
       adjustScore(currentDD.team, amt);
       showScorePop(amt, e.clientX, e.clientY);
       soundCorrect();
@@ -1515,6 +1529,7 @@ function buildAwardButtons(val) {
     wrong.className = 'award-btn wrong';
     wrong.textContent = `Wrong -$${amt.toLocaleString()}`;
     wrong.onclick = (e) => {
+      clueScored = true;
       adjustScore(currentDD.team, -amt);
       showScorePop(-amt, e.clientX, e.clientY);
       soundWrong();
@@ -1535,6 +1550,7 @@ function buildAwardButtons(val) {
     correct.className = 'award-btn correct';
     correct.textContent = `+$${val.toLocaleString()}`;
     correct.onclick = (e) => {
+      clueScored = true;
       adjustScore(p.name, val);
       showScorePop(val, e.clientX, e.clientY);
       soundCorrect();
@@ -1546,6 +1562,7 @@ function buildAwardButtons(val) {
     wrong.className = 'award-btn wrong';
     wrong.textContent = `-$${val.toLocaleString()}`;
     wrong.onclick = (e) => {
+      clueScored = true;
       adjustScore(p.name, -val);
       showScorePop(-val, e.clientX, e.clientY);
       soundWrong();
@@ -1572,7 +1589,9 @@ document.getElementById('host-answer-toggle').onclick = () => {
 };
 
 function closeModal() {
-  if (currentClue) {
+  // Only retire the square if a team actually gained or lost points on it.
+  // A plain "Close" with no scoring leaves the clue available on the board.
+  if (currentClue && clueScored) {
     usedCells[currentClue.key] = true;
     save(); buildBoard();
   }
@@ -1582,7 +1601,7 @@ function closeModal() {
   document.getElementById('host-answer').classList.remove('open');
   dropHost();
   // If that was the last clue, celebrate the winner
-  if (boardCleared() && players.length) {
+  if (clueScored && boardCleared() && players.length) {
     setTimeout(showVictory, 900);
   }
 }
