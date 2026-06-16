@@ -85,11 +85,23 @@ foot_L = sphere('FootL', (-0.18, 0.08, 0.06), (0.16, 0.22, 0.10), M_VEST)
 foot_R = sphere('FootR', ( 0.18, 0.08, 0.06), (0.16, 0.22, 0.10), M_VEST)
 parts += [leg_L, leg_R, foot_L, foot_R]
 
-# -- Body / torso --
-torso  = sphere('Torso', (0, 0, 0.95), (0.52, 0.42, 0.60), M_VEST)
-# Shirt peek at collar
-shirt  = sphere('Shirt', (0, 0.28, 1.30), (0.24, 0.10, 0.18), M_SHIRT)
-parts += [torso, shirt]
+# -- Body / torso (blue shirt) --
+torso  = sphere('Torso', (0, 0, 0.95), (0.52, 0.42, 0.60), M_SHIRT)
+# Collar peek
+collar = sphere('Collar', (0, 0.28, 1.40), (0.22, 0.10, 0.14), M_SHIRT)
+parts += [torso, collar]
+
+# -- Suspenders (two black straps over shoulders, front + back) --
+# Front straps
+susp_FL = box('SuspFL', (-0.20, 0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
+susp_FR = box('SuspFR', ( 0.20, 0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
+# Back straps
+susp_BL = box('SuspBL', (-0.20, -0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
+susp_BR = box('SuspBR', ( 0.20, -0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
+# Shoulder crossover pieces
+susp_SL = box('SuspSL', (-0.20, 0.0, 1.46), (0.05, 0.42, 0.02), M_VEST)
+susp_SR = box('SuspSR', ( 0.20, 0.0, 1.46), (0.05, 0.42, 0.02), M_VEST)
+parts += [susp_FL, susp_FR, susp_BL, susp_BR, susp_SL, susp_SR]
 
 # -- Neck --
 neck = cylinder('Neck', (0, 0, 1.56), (0.16, 0.16, 0.14), (0,0,0), M_SKIN)
@@ -143,9 +155,9 @@ temple_L = cylinder('TempleL', (-0.50, 0.45, 2.16), (0.015, 0.015, 0.24), (0, ma
 temple_R = cylinder('TempleR', ( 0.50, 0.45, 2.16), (0.015, 0.015, 0.24), (0, math.pi/2,-0.32), M_GLASS)
 parts += [gl_L, gl_R, bridge, temple_L, temple_R]
 
-# -- Arms --
-arm_L     = cylinder('ArmL',     (-0.68, 0.00, 1.18), (0.17, 0.17, 0.40), (0, 0,  0.25), M_VEST)
-arm_R     = cylinder('ArmR',     ( 0.68, 0.00, 1.18), (0.17, 0.17, 0.40), (0, 0, -0.25), M_VEST)
+# -- Arms (blue shirt sleeves) --
+arm_L     = cylinder('ArmL',     (-0.68, 0.00, 1.18), (0.17, 0.17, 0.40), (0, 0,  0.25), M_SHIRT)
+arm_R     = cylinder('ArmR',     ( 0.68, 0.00, 1.18), (0.17, 0.17, 0.40), (0, 0, -0.25), M_SHIRT)
 forearm_L = cylinder('ForearmL', (-0.84, 0.04, 0.72), (0.14, 0.14, 0.34), (0, 0.18, 0.12), M_SHIRT)
 forearm_R = cylinder('ForearmR', ( 0.84, 0.04, 0.72), (0.14, 0.14, 0.34), (0,-0.18,-0.12), M_SHIRT)
 hand_L    = sphere('HandL', (-0.96, 0.08, 0.40), (0.18, 0.16, 0.20), M_SKIN)
