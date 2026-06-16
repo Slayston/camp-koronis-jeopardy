@@ -203,12 +203,29 @@ bone('ShinR',     ( 0.18,0,0.40),( 0.18,0,0.06), 'ThighR')
 
 bpy.ops.object.mode_set(mode='OBJECT')
 
-# ── Parent all meshes to rig ───────────────────────────────────────────────────
+# ── Rigid skinning ─────────────────────────────────────────────────────────────
+# Each Mii part is a solid prop — bind it 100% to a single bone so nothing
+# deforms or bleeds (auto weights were dragging the ears during big arm moves).
+def bone_for(nm):
+    if nm == 'Neck': return 'Neck'
+    if nm == 'ArmL': return 'UpperArmL'
+    if nm == 'ArmR': return 'UpperArmR'
+    if nm in ('ForearmL', 'HandL', 'ForearmR', 'HandR'): return nm
+    if nm == 'LegL': return 'ThighL'
+    if nm == 'LegR': return 'ThighR'
+    if nm == 'FootL': return 'ShinL'
+    if nm == 'FootR': return 'ShinR'
+    HEAD_KW = ('Head','Ear','Hair','Beard','Mustache','Nose','Eye','Shine','Glass','Temple','Bridge')
+    if any(nm.startswith(k) for k in HEAD_KW): return 'Head'
+    return 'Chest'   # torso, collar, shirt, suspenders
+
 for o in parts:
-    o.select_set(True)
-rig.select_set(True)
-bpy.context.view_layer.objects.active = rig
-bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+    bn = bone_for(o.name)
+    vg = o.vertex_groups.new(name=bn)
+    vg.add(list(range(len(o.data.vertices))), 1.0, 'REPLACE')
+    m = o.modifiers.new('arm', 'ARMATURE')
+    m.object = rig
+    o.parent = rig   # rig is at the origin (identity), so no offset correction needed
 
 # ── Animation system ──────────────────────────────────────────────────────────
 bpy.context.view_layer.objects.active = rig
