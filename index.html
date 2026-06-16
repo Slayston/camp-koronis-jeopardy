@@ -1869,9 +1869,9 @@ document.getElementById('edit-save-btn').onclick = () => {
   scene.add(spotLight);
   // Brighten / dim the whole host scene on demand
   window.hostLit = (on) => {
-    spotLight.intensity = on ? 1.6 : 0;
-    keyLight.intensity  = on ? 2.0 : 1.6;
-    ambient.intensity   = on ? 1.5 : 1.2;
+    spotLight.intensity = on ? 0.8 : 0;
+    keyLight.intensity  = on ? 1.8 : 1.6;
+    ambient.intensity   = on ? 1.35 : 1.2;
   };
 
   // Ground
