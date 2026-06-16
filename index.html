@@ -618,6 +618,87 @@ body {
   text-transform: uppercase;
 }
 
+/* ── Daily Double wager modal ── */
+#ddw-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.94);
+  display: none;
+  z-index: 210;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+#ddw-overlay.open { display: flex; }
+#ddw-modal {
+  background: linear-gradient(160deg, #1a1340 0%, #0a0a24 100%);
+  border: 3px solid #d4a017;
+  border-radius: 14px;
+  padding: 1.8rem 2rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 0 60px #d4a01740;
+}
+.ddw-title {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.6rem;
+  color: #f5d252;
+  text-align: center;
+  margin-bottom: 1.4rem;
+  text-shadow: 0 0 20px #c8960080;
+}
+.ddw-field { margin-bottom: 1.1rem; }
+.ddw-field label {
+  display: block;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9090d0;
+  margin-bottom: 0.4rem;
+}
+#ddw-max-label { color: #f5d252; }
+.ddw-field select, .ddw-field input {
+  width: 100%;
+  background: #060818;
+  border: 1px solid #3a3a7a;
+  border-radius: 6px;
+  color: #fff;
+  padding: 0.5rem 0.6rem;
+  font-size: 1rem;
+  font-family: 'Oswald', sans-serif;
+}
+.ddw-field select:focus, .ddw-field input:focus { outline: none; border-color: #d4a017; }
+#ddw-wager { font-size: 1.4rem; color: #f5d252; text-align: center; }
+#ddw-quick { display: flex; gap: 6px; margin-top: 0.5rem; flex-wrap: wrap; }
+.ddw-quick-btn {
+  flex: 1;
+  background: #12123a;
+  border: 1px solid #3a3a7a;
+  border-radius: 5px;
+  color: #b0c0ff;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.2rem;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.12s;
+}
+.ddw-quick-btn:hover { background: #1e1e5a; color: #fff; }
+#ddw-error {
+  color: #ff7070;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 0.8rem;
+  text-align: center;
+  min-height: 1.2em;
+  margin-bottom: 0.6rem;
+}
+.ddw-actions { display: flex; gap: 0.5rem; justify-content: center; }
+#ddw-lock { background: #d4a017; border-color: #d4a017; color: #040800; }
+#ddw-cancel { background: #1a1a4a; border-color: #3a3a7a; color: #a0b0ff; }
+
 /* ── Edit button ── */
 #edit-btn {
   position: fixed;
@@ -868,6 +949,27 @@ body {
     <h2>Daily Double!</h2>
     <div class="dd-stars">&#9733; &#9733; &#9733;</div>
     <p>Click anywhere to continue</p>
+  </div>
+</div>
+
+<!-- Daily Double wager -->
+<div id="ddw-overlay">
+  <div id="ddw-modal">
+    <div class="ddw-title">Daily Double Wager</div>
+    <div class="ddw-field">
+      <label>Which team is playing?</label>
+      <select id="ddw-team"></select>
+    </div>
+    <div class="ddw-field">
+      <label>Wager <span id="ddw-max-label"></span></label>
+      <input type="number" id="ddw-wager" min="0" step="100" value="0"/>
+      <div id="ddw-quick"></div>
+    </div>
+    <div id="ddw-error"></div>
+    <div class="ddw-actions">
+      <button class="modal-btn" id="ddw-lock">Lock In Wager</button>
+      <button class="modal-btn" id="ddw-cancel">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1129,6 +1231,8 @@ function buildBoard() {
 }
 
 // ── Clue Modal ──
+let currentDD = null;   // { team, wager } when the open clue is a Daily Double
+
 function openClue(ci, ri) {
   const cat = gameData.categories[ci];
   const clue = cat.clues[ri];
@@ -1137,15 +1241,89 @@ function openClue(ci, ri) {
   currentClue = { ci, ri, val, key };
   if (clue.dd) {
     soundDailyDouble();
-    showDailyDouble(() => openModal(cat, clue, val));
+    showDailyDouble(() => openDailyWager(cat, clue, val));
   } else {
     openModal(cat, clue, val);
   }
 }
 
+// ── Daily Double wager ──
+const DDW_FLOOR = 1000;  // lets a low-scoring team still wager up to the top value
+function openDailyWager(cat, clue, val) {
+  if (!players.length) { openModal(cat, clue, val); return; }  // no teams → play normally
+  const sel = document.getElementById('ddw-team');
+  sel.innerHTML = '';
+  players.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = `${p.name}  (has $${p.score.toLocaleString()})`;
+    sel.appendChild(opt);
+  });
+  if (activePlayer) sel.value = activePlayer;
+  document.getElementById('ddw-error').textContent = '';
+
+  function refreshMax() {
+    const p = players.find(x => x.name === sel.value);
+    const max = Math.max(p ? p.score : 0, DDW_FLOOR);
+    document.getElementById('ddw-max-label').textContent = `(max $${max.toLocaleString()})`;
+    const wIn = document.getElementById('ddw-wager');
+    wIn.max = max;
+    wIn.value = Math.min(val, max);
+    // quick-pick buttons
+    const quick = document.getElementById('ddw-quick');
+    quick.innerHTML = '';
+    const picks = [
+      ['Min $100', 100],
+      [`This square $${val}`, val],
+      [`Half $${Math.round(max/2/100)*100}`, Math.round(max/2/100)*100],
+      [`All in $${max}`, max],
+    ];
+    picks.forEach(([label, amt]) => {
+      if (amt <= 0 || amt > max) return;
+      const b = document.createElement('button');
+      b.className = 'ddw-quick-btn';
+      b.textContent = label;
+      b.onclick = () => { wIn.value = amt; };
+      quick.appendChild(b);
+    });
+  }
+  sel.onchange = refreshMax;
+  refreshMax();
+
+  document.getElementById('ddw-overlay').classList.add('open');
+  // stash context for lock handler
+  ddwContext = { cat, clue, val, refreshMax };
+}
+
+let ddwContext = null;
+document.getElementById('ddw-cancel').onclick = () => {
+  document.getElementById('ddw-overlay').classList.remove('open');
+  // cancelling a Daily Double frees the square again
+  currentClue = null;
+};
+document.getElementById('ddw-lock').onclick = () => {
+  if (!ddwContext) return;
+  const team = document.getElementById('ddw-team').value;
+  const p = players.find(x => x.name === team);
+  const max = Math.max(p ? p.score : 0, DDW_FLOOR);
+  let wager = parseInt(document.getElementById('ddw-wager').value, 10);
+  const errEl = document.getElementById('ddw-error');
+  if (isNaN(wager) || wager <= 0) { errEl.textContent = 'Enter a wager greater than $0.'; return; }
+  if (wager > max) { errEl.textContent = `Max wager is $${max.toLocaleString()}.`; return; }
+  currentDD = { team, wager };
+  activePlayer = team; save(); renderPlayers();
+  document.getElementById('ddw-overlay').classList.remove('open');
+  openModal(ddwContext.cat, ddwContext.clue, ddwContext.val);
+};
+
 function openModal(cat, clue, val) {
   document.getElementById('modal-cat').textContent = cat.name;
-  document.getElementById('modal-value').textContent = `$${val.toLocaleString()}`;
+  if (currentDD) {
+    document.getElementById('modal-value').textContent =
+      `Daily Double — ${currentDD.team} wagers $${currentDD.wager.toLocaleString()}`;
+  } else {
+    document.getElementById('modal-value').textContent = `$${val.toLocaleString()}`;
+  }
   document.getElementById('modal-clue').textContent = clue.q;
   document.getElementById('answer-text').textContent = clue.a;
   // Big answer stays hidden from the room until "Reveal to Room" is pressed
@@ -1169,6 +1347,39 @@ function buildAwardButtons(val) {
   container.innerHTML = '';
   if (!players.length) {
     container.innerHTML = '<span style="color:#446;font-size:0.75rem;font-family:Roboto Condensed,sans-serif;">Add players to award points</span>';
+    return;
+  }
+  // Daily Double: only the wagering team can score, by their wager amount.
+  if (currentDD) {
+    const amt = currentDD.wager;
+    const row = document.createElement('div');
+    row.className = 'award-row';
+    const name = document.createElement('span');
+    name.className = 'award-name';
+    name.textContent = currentDD.team;
+    const correct = document.createElement('button');
+    correct.className = 'award-btn correct';
+    correct.textContent = `Correct +$${amt.toLocaleString()}`;
+    correct.onclick = (e) => {
+      adjustScore(currentDD.team, amt);
+      showScorePop(amt, e.clientX, e.clientY);
+      soundCorrect();
+      launchConfetti();
+      if (window.hostCelebrate) window.hostCelebrate();
+      closeModal();
+    };
+    const wrong = document.createElement('button');
+    wrong.className = 'award-btn wrong';
+    wrong.textContent = `Wrong -$${amt.toLocaleString()}`;
+    wrong.onclick = (e) => {
+      adjustScore(currentDD.team, -amt);
+      showScorePop(-amt, e.clientX, e.clientY);
+      soundWrong();
+      if (window.hostDisappoint) window.hostDisappoint();
+      closeModal();
+    };
+    row.append(name, correct, wrong);
+    container.appendChild(row);
     return;
   }
   players.forEach(p => {
@@ -1223,6 +1434,7 @@ function closeModal() {
     save(); buildBoard();
   }
   currentClue = null;
+  currentDD = null;
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('host-answer').classList.remove('open');
 }
