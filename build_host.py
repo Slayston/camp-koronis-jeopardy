@@ -266,10 +266,13 @@ def make_action(name, n_frames, pose_fn):
 
 TAU = 2 * math.pi
 
+# NOTE: bones point straight up, so in pose-local space the bone's Y axis is
+# world "up". Vertical hops/bounces therefore use location.y, NOT location.z.
+
 # ── Idle: breathing, gentle head bob, light arm sway (loops) ──────────────────
 def pose_idle(f, N):
     t = (f - 1) / N * TAU
-    PB['Chest'].location = (0, 0, math.sin(t) * 0.018)
+    PB['Chest'].location = (0, math.sin(t) * 0.018, 0)
     PB['Head'].rotation_euler = (math.sin(t*0.5)*0.04, 0, math.sin(t*0.3)*0.05)
     sway = math.sin(t) * 0.04
     PB['UpperArmL'].rotation_euler = (sway, 0, 0)
@@ -278,59 +281,57 @@ def pose_idle(f, N):
     PB['ForearmL'].rotation_euler = (curl, 0, 0)
     PB['ForearmR'].rotation_euler = (-curl, 0, 0)
 
-# ── VICTORY 1: Cheer — both arms thrown up, body bounces ──────────────────────
+# ── VICTORY 1: Cheer — arms out in a wide V, waving, gentle bounce ────────────
 def pose_cheer(f, N):
     t = (f - 1) / N * TAU
-    bounce = abs(math.sin(t * 2)) * 0.12
-    PB['Hips'].location = (0, 0, bounce)
-    PB['Chest'].rotation_euler = (-0.12, 0, 0)
-    PB['Head'].rotation_euler = (-0.18, 0, math.sin(t*3)*0.06)
-    # arms up and out (rotate about local Y to lift)
-    lift = -1.9 + math.sin(t * 3) * 0.18
-    PB['UpperArmL'].rotation_euler = (0, 0, -lift)
-    PB['UpperArmR'].rotation_euler = (0, 0,  lift)
-    PB['ForearmL'].rotation_euler = (-0.3, 0, 0)
-    PB['ForearmR'].rotation_euler = (-0.3, 0, 0)
+    PB['Hips'].location = (0, abs(math.sin(t * 2)) * 0.06, 0)   # small bounce
+    PB['Chest'].rotation_euler = (-0.1, 0, 0)
+    PB['Head'].rotation_euler = (-0.15, 0, math.sin(t*3)*0.07)
+    # arms held out in a V (~shoulder height), waving side to side
+    wave = math.sin(t * 4) * 0.22
+    PB['UpperArmL'].rotation_euler = (0, 0,  1.25 + wave)
+    PB['UpperArmR'].rotation_euler = (0, 0, -1.25 - wave)
+    PB['ForearmL'].rotation_euler = (-0.2, 0, 0)
+    PB['ForearmR'].rotation_euler = (-0.2, 0, 0)
 
-# ── VICTORY 2: Jump — leaps up with both hands straight in the air ────────────
+# ── VICTORY 2: Jump — real hop with both hands straight overhead ──────────────
 def pose_jump(f, N):
     t = (f - 1) / N * TAU
-    # two clear hops over the clip
-    hop = abs(math.sin(t * 2)) * 0.28
-    PB['Hips'].location = (0, 0, hop)
-    # legs tuck slightly at the top of each hop
-    tuck = hop / 0.28
-    PB['ThighL'].rotation_euler = (0.25 * tuck, 0, 0)
-    PB['ThighR'].rotation_euler = (0.25 * tuck, 0, 0)
-    PB['ShinL'].rotation_euler = (-0.3 * tuck, 0, 0)
-    PB['ShinR'].rotation_euler = (-0.3 * tuck, 0, 0)
-    PB['Chest'].rotation_euler = (-0.1, 0, 0)
+    hop = abs(math.sin(t * 2)) * 0.32          # clear vertical hop (local Y)
+    PB['Hips'].location = (0, hop, 0)
+    tuck = hop / 0.32
+    PB['ThighL'].rotation_euler = (0.3 * tuck, 0, 0)
+    PB['ThighR'].rotation_euler = (0.3 * tuck, 0, 0)
+    PB['ShinL'].rotation_euler = (-0.4 * tuck, 0, 0)
+    PB['ShinR'].rotation_euler = (-0.4 * tuck, 0, 0)
+    PB['Chest'].rotation_euler = (-0.08, 0, 0)
     PB['Head'].rotation_euler = (-0.2, 0, 0)
-    # both arms straight up overhead
-    raise_amt = -2.0 + math.sin(t * 4) * 0.12
-    PB['UpperArmL'].rotation_euler = (0, 0, -raise_amt)
-    PB['UpperArmR'].rotation_euler = (0, 0,  raise_amt)
-    PB['ForearmL'].rotation_euler = (-0.15, 0, 0)
-    PB['ForearmR'].rotation_euler = (-0.15, 0, 0)
+    # arms straight up overhead
+    PB['UpperArmL'].rotation_euler = (0, 0,  2.05)
+    PB['UpperArmR'].rotation_euler = (0, 0, -2.05)
+    PB['ForearmL'].rotation_euler = (-0.12, 0, 0)
+    PB['ForearmR'].rotation_euler = (-0.12, 0, 0)
 
-# ── VICTORY 3: Clap — hands meet in front repeatedly ──────────────────────────
+# ── VICTORY 3: Clap — hands meet in front of the chest repeatedly ─────────────
 def pose_clap(f, N):
     t = (f - 1) / N * TAU
-    clap = (math.sin(t * 4) + 1) / 2   # 0..1
-    PB['Hips'].location = (0, 0, abs(math.sin(t * 2)) * 0.05)
-    PB['Head'].rotation_euler = (-0.08, 0, 0)
-    PB['Chest'].rotation_euler = (-0.05, 0, 0)
-    # arms forward, forearms swing together
-    PB['UpperArmL'].rotation_euler = (-1.1, 0, -0.5)
-    PB['UpperArmR'].rotation_euler = (-1.1, 0,  0.5)
-    PB['ForearmL'].rotation_euler = (-0.6, 0,  0.5 - clap*0.5)
-    PB['ForearmR'].rotation_euler = (-0.6, 0, -0.5 + clap*0.5)
+    clap = (math.sin(t * 5) + 1) / 2   # 0 = apart, 1 = together
+    PB['Hips'].location = (0, abs(math.sin(t * 2)) * 0.04, 0)
+    PB['Head'].rotation_euler = (-0.06, 0, 0)
+    PB['Chest'].rotation_euler = (-0.04, 0, 0)
+    # upper arms raised to the side a bit, then forearms swing inward to meet
+    PB['UpperArmL'].rotation_euler = (0, 0,  0.85)
+    PB['UpperArmR'].rotation_euler = (0, 0, -0.85)
+    # forearm X bends them forward so hands sit in FRONT of the body;
+    # Z swings them toward the centre to clap.
+    PB['ForearmL'].rotation_euler = (-1.3, 0,  0.55 - clap * 0.5)
+    PB['ForearmR'].rotation_euler = (-1.3, 0, -0.55 + clap * 0.5)
 
 # ── WRONG 1: Head shake "no" — slump, head turns side to side ─────────────────
 def pose_shake(f, N):
     t = (f - 1) / N * TAU
     PB['Chest'].rotation_euler = (0.12, 0, 0)       # slump forward
-    PB['Hips'].location = (0, 0, -0.04)
+    PB['Hips'].location = (0, -0.04, 0)
     PB['Head'].rotation_euler = (0.08, 0, math.sin(t * 3) * 0.35)  # shake no
     PB['UpperArmL'].rotation_euler = (0.15, 0, 0)
     PB['UpperArmR'].rotation_euler = (0.15, 0, 0)
@@ -341,7 +342,7 @@ def pose_slump(f, N):
     drop = min(1.0, f / (N * 0.4))                  # ease into the slump
     settle = math.sin(t * 1.5) * 0.02
     PB['Chest'].rotation_euler = (0.30 * drop, 0, 0)
-    PB['Hips'].location = (0, 0, -0.10 * drop)
+    PB['Hips'].location = (0, -0.10 * drop, 0)
     PB['Head'].rotation_euler = (0.45 * drop + settle, 0, 0)
     PB['UpperArmL'].rotation_euler = (0.25 * drop, 0, 0)
     PB['UpperArmR'].rotation_euler = (0.25 * drop, 0, 0)
