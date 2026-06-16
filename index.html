@@ -1623,7 +1623,7 @@ document.getElementById('edit-save-btn').onclick = () => {
 
   // ── Small campfire in front of the host (low + forward so it never blocks him) ──
   const fireGroup = new THREE.Group();
-  fireGroup.position.set(0, 0, 1.9);   // between host and camera, at ground level
+  fireGroup.position.set(0, 0, 3.8);   // well forward, near the "your host" label
   const fLogMat = new THREE.MeshLambertMaterial({ color: 0x3d1f0a });
   [[-0.14, 0.4], [0.14, -0.4], [0, 0.0]].forEach(([x, rot]) => {
     const log = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.42, 8), fLogMat);
@@ -1644,7 +1644,7 @@ document.getElementById('edit-save-btn').onclick = () => {
 
   // Flickering campfire light — warm uplight on the host from the front
   const campLight = new THREE.PointLight(0xff7a22, 2.4, 10);
-  campLight.position.set(0, 0.65, 1.9);
+  campLight.position.set(0, 0.65, 3.2);
   scene.add(campLight);
 
   // Ground
