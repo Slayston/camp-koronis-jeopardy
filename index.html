@@ -6,6 +6,7 @@
 <title>Camp Koronis Jeopardy!</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1267,95 +1268,108 @@ document.getElementById('edit-save-btn').onclick = () => {
   document.getElementById('edit-overlay').classList.remove('open');
 };
 
-// ── Three.js Campfire ──
+// ── Three.js Host Character ──
 (function() {
   const canvas = document.getElementById('host-canvas');
-  const panel = document.getElementById('host-panel');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  const panel  = document.getElementById('host-panel');
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x050f07);
-  scene.fog = new THREE.FogExp2(0x050f07, 0.08);
+  scene.fog = new THREE.FogExp2(0x060f08, 0.06);
 
-  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
-  camera.position.set(0, 2.5, 6);
-  camera.lookAt(0, 1, 0);
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 80);
+  camera.position.set(0, 1.8, 5.5);
+  camera.lookAt(0, 1.6, 0);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x203030, 1.2));
+  const keyLight = new THREE.DirectionalLight(0xfff5e0, 1.6);
+  keyLight.position.set(2, 5, 4);
+  keyLight.castShadow = true;
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0x204060, 0.6);
+  fillLight.position.set(-3, 2, 2);
+  scene.add(fillLight);
+  const rimLight = new THREE.DirectionalLight(0x7ec87e, 0.4);
+  rimLight.position.set(0, 3, -4);
+  scene.add(rimLight);
 
   // Ground
   const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(10, 32),
-    new THREE.MeshLambertMaterial({ color: 0x0a1a0a })
+    new THREE.CircleGeometry(8, 32),
+    new THREE.MeshLambertMaterial({ color: 0x081208 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Log pile
-  const logMat = new THREE.MeshLambertMaterial({ color: 0x3d1f0a });
-  [[-0.3, 0, 0, 0.3], [0.3, 0, 0, -0.3], [0, 0, -0.3, 0.1]].forEach(([x,y,z,r]) => {
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 1.1, 8), logMat);
-    log.position.set(x, y + 0.08, z);
-    log.rotation.z = r;
-    log.castShadow = true;
-    scene.add(log);
-  });
-
-  // Flame cones
-  const flameMat1 = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.85 });
-  const flameMat2 = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.7 });
-  const flameMat3 = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9 });
-  const flames = [];
-  [[0,0.1,0, 0.22,0.9, flameMat1],[-.18,0.05,.1, 0.14,0.6, flameMat2],[.16,0.05,-.1, 0.16,0.7, flameMat2],[0,0.15,0, 0.1,0.5, flameMat3]].forEach(([x,y,z,r,h,mat]) => {
-    const f = new THREE.Mesh(new THREE.ConeGeometry(r, h, 8), mat);
-    f.position.set(x, y + h/2, z);
-    flames.push({ mesh: f, baseY: y + h/2, h });
-    scene.add(f);
-  });
-
-  // Embers
-  const emberGeo = new THREE.SphereGeometry(0.04, 4, 4);
-  const embers = Array.from({ length: 18 }, (_, i) => {
-    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color().setHSL(0.06 + Math.random()*0.05, 1, 0.5 + Math.random()*0.3) });
-    const m = new THREE.Mesh(emberGeo, mat);
-    const angle = Math.random() * Math.PI * 2;
-    m.position.set(Math.cos(angle)*0.3, 0.3+Math.random()*0.8, Math.sin(angle)*0.3);
-    scene.add(m);
-    return { mesh: m, speed: 0.015+Math.random()*0.025, offset: Math.random()*Math.PI*2, radius: 0.1+Math.random()*0.25, life: Math.random() };
-  });
-
-  // Pine trees in background
-  const treeMat = new THREE.MeshLambertMaterial({ color: 0x0d3a0d });
+  // Background pine trees
+  const treeMat  = new THREE.MeshLambertMaterial({ color: 0x0c300c });
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x2a1505 });
-  [[-3.5,0,-4,1.4,2.2],[3.2,0,-4,1.2,2],[-2,0,-5,1.8,2.8],[2.8,0,-5.5,1.5,2.5],[-4.5,0,-5,1,1.8],[4.5,0,-4.5,1.1,1.9]].forEach(([x,y,z,s,h]) => {
-    if (isNaN(x)) return;
-    const tree = new THREE.Mesh(new THREE.ConeGeometry(s*0.7, h, 7), treeMat);
-    tree.position.set(x, h/2, z);
-    scene.add(tree);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,0.5,6), trunkMat);
-    trunk.position.set(x, -0.1, z);
-    scene.add(trunk);
+  [[-3,0,-5,1.2,2.2],[3,0,-5,1.0,2.0],[-1.8,0,-6,1.5,2.6],[1.8,0,-6,1.3,2.4],[-4.2,0,-5.5,0.9,1.8],[4.2,0,-5,0.8,1.6]].forEach(([x,y,z,s,h]) => {
+    const t = new THREE.Mesh(new THREE.ConeGeometry(s*0.7, h, 7), treeMat);
+    t.position.set(x, h/2, z); scene.add(t);
+    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.09,0.5,6), trunkMat);
+    tr.position.set(x, -0.1, z); scene.add(tr);
   });
 
-  // Stars in 3D
-  const starGeo = new THREE.BufferGeometry();
-  const starVerts = [];
-  for (let i = 0; i < 300; i++) {
-    starVerts.push((Math.random()-0.5)*30, Math.random()*12+2, (Math.random()-0.5)*20 - 5);
-  }
-  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xaaccff, size: 0.08 })));
+  // Stars
+  const sv = [];
+  for (let i=0;i<250;i++) sv.push((Math.random()-.5)*40, Math.random()*14+3, (Math.random()-.5)*20-4);
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute('position', new THREE.Float32BufferAttribute(sv,3));
+  scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color:0xaaccff, size:0.09 })));
 
-  // Lights
-  scene.add(new THREE.AmbientLight(0x0a1a0a, 0.8));
-  const fireLight = new THREE.PointLight(0xff6600, 3, 8);
-  fireLight.position.set(0, 1.2, 0);
-  fireLight.castShadow = true;
-  scene.add(fireLight);
-  const moonLight = new THREE.DirectionalLight(0x203040, 0.4);
-  moonLight.position.set(-5, 8, 3);
-  scene.add(moonLight);
+  // Load host GLB
+  let mixer = null;
+  let idleAction = null;
+
+  const loader = new THREE.GLTFLoader();
+  loader.load('./host.glb',
+    (gltf) => {
+      const model = gltf.scene;
+
+      // Center and scale to fit panel nicely
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+
+      const targetH = 3.2;
+      const scale = targetH / size.y;
+      model.scale.setScalar(scale);
+      model.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+      model.rotation.y = Math.PI; // face camera
+
+      model.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      scene.add(model);
+
+      // Play idle animation if present
+      if (gltf.animations && gltf.animations.length > 0) {
+        mixer = new THREE.AnimationMixer(model);
+        const clip = gltf.animations.find(a => a.name === 'Idle') || gltf.animations[0];
+        idleAction = mixer.clipAction(clip);
+        idleAction.setLoop(THREE.LoopRepeat, Infinity);
+        idleAction.play();
+      }
+
+      document.getElementById('host-label').textContent = 'Your Host';
+    },
+    undefined,
+    (err) => { console.warn('GLB load error:', err); }
+  );
 
   // Resize
   function resize() {
@@ -1369,33 +1383,11 @@ document.getElementById('edit-save-btn').onclick = () => {
   resize();
 
   // Animate
-  let t = 0;
+  const clock = new THREE.Clock();
   function animate() {
     requestAnimationFrame(animate);
-    t += 0.04;
-    // flicker flames
-    flames.forEach((f, i) => {
-      const flicker = 1 + 0.15 * Math.sin(t*3 + i*1.5) + 0.08*Math.sin(t*7+i);
-      f.mesh.scale.set(flicker, flicker*1.1, flicker);
-      f.mesh.position.y = f.baseY + 0.06*Math.sin(t*4+i*2);
-      f.mesh.material.opacity = 0.7 + 0.25*Math.sin(t*5+i);
-    });
-    // flicker light
-    fireLight.intensity = 2.5 + 1.5*Math.sin(t*4.5) + 0.8*Math.sin(t*11);
-    fireLight.color.setHSL(0.06 + 0.02*Math.sin(t*3), 1, 0.5);
-    // embers float up
-    embers.forEach(e => {
-      e.life += e.speed;
-      if (e.life > 1) {
-        e.life = 0;
-        const angle = Math.random() * Math.PI * 2;
-        e.mesh.position.set(Math.cos(angle)*0.3, 0.2, Math.sin(angle)*0.3);
-        e.radius = 0.1 + Math.random()*0.25;
-      }
-      e.mesh.position.y += 0.025;
-      e.mesh.position.x += Math.sin(t*2 + e.offset) * 0.006;
-      e.mesh.material.opacity = Math.max(0, 1 - e.life);
-    });
+    const delta = clock.getDelta();
+    if (mixer) mixer.update(delta);
     renderer.render(scene, camera);
   }
   animate();
