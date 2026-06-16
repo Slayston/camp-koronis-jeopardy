@@ -92,12 +92,12 @@ collar = sphere('Collar', (0, 0.28, 1.40), (0.22, 0.10, 0.14), M_SHIRT)
 parts += [torso, collar]
 
 # -- Suspenders (two black straps over shoulders, front + back) --
-# Front straps
-susp_FL = box('SuspFL', (-0.20, 0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
-susp_FR = box('SuspFR', ( 0.20, 0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
+# Front straps — longer and lower so they run down under the belly to the pants
+susp_FL = box('SuspFL', (-0.20, 0.45, 0.92), (0.05, 0.02, 0.56), M_VEST)
+susp_FR = box('SuspFR', ( 0.20, 0.45, 0.92), (0.05, 0.02, 0.56), M_VEST)
 # Back straps
-susp_BL = box('SuspBL', (-0.20, -0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
-susp_BR = box('SuspBR', ( 0.20, -0.42, 1.05), (0.05, 0.02, 0.40), M_VEST)
+susp_BL = box('SuspBL', (-0.20, -0.42, 0.98), (0.05, 0.02, 0.50), M_VEST)
+susp_BR = box('SuspBR', ( 0.20, -0.42, 0.98), (0.05, 0.02, 0.50), M_VEST)
 # Shoulder crossover pieces
 susp_SL = box('SuspSL', (-0.20, 0.0, 1.46), (0.05, 0.42, 0.02), M_VEST)
 susp_SR = box('SuspSR', ( 0.20, 0.0, 1.46), (0.05, 0.42, 0.02), M_VEST)

@@ -624,6 +624,108 @@ body {
   text-transform: uppercase;
 }
 
+/* ── Winner celebration ── */
+#win-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  display: none;
+  z-index: 250;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  backdrop-filter: blur(5px);
+}
+#win-overlay.open { display: flex; }
+#win-box {
+  background: linear-gradient(165deg, #1a1340 0%, #0a0a24 55%, #071410 100%);
+  border: 3px solid #d4a017;
+  border-radius: 16px;
+  padding: 2rem 2.5rem;
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 80px #d4a01740;
+  animation: modalPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+#win-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #d4a017;
+  margin-bottom: 1rem;
+}
+#win-champion {
+  margin-bottom: 1.5rem;
+}
+.win-crown {
+  font-size: 2.4rem;
+  color: #f5d252;
+  text-shadow: 0 0 30px #c89600;
+  animation: ddGlow 1.4s ease-in-out infinite alternate;
+}
+.win-champ-name {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 2.4rem;
+  color: #f5d252;
+  text-shadow: 0 0 28px #c8960080;
+  line-height: 1.1;
+  margin: 0.3rem 0;
+}
+.win-champ-score {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #7eff9a;
+}
+.win-champ-label {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #9090d0;
+}
+#win-list { margin-bottom: 1.5rem; }
+.win-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0e1240;
+  border: 1px solid #2a2a6a;
+  border-radius: 7px;
+  padding: 0.5rem 0.85rem;
+  margin-bottom: 0.4rem;
+}
+.win-row .win-rank {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.9rem;
+  color: #7080c0;
+  min-width: 28px;
+  text-align: left;
+  font-weight: 700;
+}
+.win-row .win-name {
+  flex: 1;
+  text-align: left;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #cdd8ff;
+  padding-left: 0.4rem;
+}
+.win-row .win-score {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #f5d252;
+}
+.win-row .win-score.negative { color: #ff7070; }
+#win-actions { display: flex; gap: 0.5rem; justify-content: center; }
+#win-newgame { background: #d4a017; border-color: #d4a017; color: #040800; }
+#win-close { background: #1a1a4a; border-color: #3a3a7a; color: #a0b0ff; }
+
 /* ── Daily Double wager modal ── */
 #ddw-overlay {
   position: fixed;
@@ -955,6 +1057,19 @@ body {
     <h2>Daily Double!</h2>
     <div class="dd-stars">&#9733; &#9733; &#9733;</div>
     <p>Click anywhere to continue</p>
+  </div>
+</div>
+
+<!-- Winner celebration -->
+<div id="win-overlay">
+  <div id="win-box">
+    <div id="win-label">&#9733; &nbsp; Final Scores &nbsp; &#9733;</div>
+    <div id="win-champion"></div>
+    <div id="win-list"></div>
+    <div id="win-actions">
+      <button class="modal-btn" id="win-newgame">New Game</button>
+      <button class="modal-btn" id="win-close">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1464,7 +1579,85 @@ function closeModal() {
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('host-answer').classList.remove('open');
   dropHost();
+  // If that was the last clue, celebrate the winner
+  if (boardCleared() && players.length) {
+    setTimeout(showVictory, 900);
+  }
 }
+
+function boardCleared() {
+  const total = gameData.categories.length * VALUES.length;
+  let used = 0;
+  for (let ci = 0; ci < gameData.categories.length; ci++) {
+    for (let ri = 0; ri < VALUES.length; ri++) {
+      if (usedCells[`${ci}-${ri}`]) used++;
+    }
+  }
+  return used >= total;
+}
+
+// ── Winner celebration ──
+let winConfettiTimer = null;
+function showVictory() {
+  const ranked = [...players].sort((a, b) => b.score - a.score);
+  const top = ranked[0];
+  const winners = ranked.filter(p => p.score === top.score);
+
+  // Champion block
+  const champ = document.getElementById('win-champion');
+  const isTie = winners.length > 1;
+  const champName = isTie ? winners.map(w => w.name).join(' & ') : top.name;
+  champ.innerHTML = `
+    <div class="win-crown">&#9818;</div>
+    <div class="win-champ-label">${isTie ? 'Tie!' : 'Champion'}</div>
+    <div class="win-champ-name">${champName}</div>
+    <div class="win-champ-score">$${top.score.toLocaleString()}</div>
+  `;
+
+  // Full ranked list
+  const list = document.getElementById('win-list');
+  list.innerHTML = '';
+  ranked.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'win-row';
+    const neg = p.score < 0 ? ' negative' : '';
+    const scoreText = (p.score < 0 ? '-$' : '$') + Math.abs(p.score).toLocaleString();
+    row.innerHTML = `
+      <span class="win-rank">#${i + 1}</span>
+      <span class="win-name">${p.name}</span>
+      <span class="win-score${neg}">${scoreText}</span>
+    `;
+    list.appendChild(row);
+  });
+
+  document.getElementById('win-overlay').classList.add('open');
+
+  // Fanfare + celebration loop
+  soundCorrect();
+  if (window.hostCelebrate) window.hostCelebrate();
+  let bursts = 0;
+  clearInterval(winConfettiTimer);
+  winConfettiTimer = setInterval(() => {
+    launchConfetti();
+    bursts++;
+    if (bursts % 3 === 0 && window.hostCelebrate) window.hostCelebrate();
+    if (bursts >= 9) clearInterval(winConfettiTimer);
+  }, 700);
+}
+
+document.getElementById('win-close').onclick = () => {
+  document.getElementById('win-overlay').classList.remove('open');
+  clearInterval(winConfettiTimer);
+};
+document.getElementById('win-newgame').onclick = () => {
+  document.getElementById('win-overlay').classList.remove('open');
+  clearInterval(winConfettiTimer);
+  usedCells = {};
+  players.forEach(p => p.score = 0);
+  save();
+  buildBoard();
+  renderPlayers();
+};
 document.getElementById('overlay').addEventListener('click', e => {
   if (e.target === document.getElementById('overlay')) closeModal();
 });
