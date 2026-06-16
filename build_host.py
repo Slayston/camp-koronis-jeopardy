@@ -210,53 +210,149 @@ rig.select_set(True)
 bpy.context.view_layer.objects.active = rig
 bpy.ops.object.parent_set(type='ARMATURE_AUTO')
 
-# ── Idle animation (120f = 4s loop at 30fps) ──────────────────────────────────
+# ── Animation system ──────────────────────────────────────────────────────────
 bpy.context.view_layer.objects.active = rig
 bpy.ops.object.mode_set(mode='POSE')
 PB = rig.pose.bones
 for pb in PB:
     pb.rotation_mode = 'XYZ'
 
-FRAMES = 120
-for f in range(1, FRAMES + 1):
-    bpy.context.scene.frame_set(f)
-    t = (f - 1) / FRAMES * 2 * math.pi
+# All bones we touch — reset to rest each frame before posing so leftover
+# rotations from one clip never bleed into the next.
+POSED = ['Chest','Spine','Head','Neck','Hips',
+         'UpperArmL','ForearmL','HandL','UpperArmR','ForearmR','HandR',
+         'ThighL','ShinL','ThighR','ShinR']
 
-    # Breathing — gentle chest rise
+rig.animation_data_create()
+
+def make_action(name, n_frames, pose_fn):
+    """Build a standalone action from a per-frame pose function and stash it
+    to its own NLA track so the glTF exporter emits it as a named clip."""
+    action = bpy.data.actions.new(name)
+    rig.animation_data.action = action
+    for f in range(1, n_frames + 1):
+        bpy.context.scene.frame_set(f)
+        # reset to rest pose
+        for n in POSED:
+            PB[n].rotation_euler = (0, 0, 0)
+            PB[n].location = (0, 0, 0)
+        pose_fn(f, n_frames)
+        for n in POSED:
+            PB[n].keyframe_insert('rotation_euler', frame=f)
+            PB[n].keyframe_insert('location', frame=f)
+    # stash to NLA + clear active slot for the next action
+    track = rig.animation_data.nla_tracks.new()
+    track.name = name
+    track.strips.new(name, 1, action)
+    rig.animation_data.action = None
+    return action
+
+TAU = 2 * math.pi
+
+# ── Idle: breathing, gentle head bob, light arm sway (loops) ──────────────────
+def pose_idle(f, N):
+    t = (f - 1) / N * TAU
     PB['Chest'].location = (0, 0, math.sin(t) * 0.018)
-    PB['Chest'].keyframe_insert('location', frame=f)
-
-    # Head bob + slight look-around
-    PB['Head'].rotation_euler = (
-        math.sin(t * 0.5) * 0.04,       # slow nod
-        0,
-        math.sin(t * 0.3) * 0.05        # gentle side turn
-    )
-    PB['Head'].keyframe_insert('rotation_euler', frame=f)
-
-    # Arms sway gently (idle hang)
+    PB['Head'].rotation_euler = (math.sin(t*0.5)*0.04, 0, math.sin(t*0.3)*0.05)
     sway = math.sin(t) * 0.04
     PB['UpperArmL'].rotation_euler = (sway, 0, 0)
     PB['UpperArmR'].rotation_euler = (-sway, 0, 0)
-    PB['UpperArmL'].keyframe_insert('rotation_euler', frame=f)
-    PB['UpperArmR'].keyframe_insert('rotation_euler', frame=f)
-
-    # Forearm slight idle curl
-    curl = math.sin(t * 0.7 + 0.5) * 0.03
+    curl = math.sin(t*0.7 + 0.5) * 0.03
     PB['ForearmL'].rotation_euler = (curl, 0, 0)
     PB['ForearmR'].rotation_euler = (-curl, 0, 0)
-    PB['ForearmL'].keyframe_insert('rotation_euler', frame=f)
-    PB['ForearmR'].keyframe_insert('rotation_euler', frame=f)
+
+# ── VICTORY 1: Cheer — both arms thrown up, body bounces ──────────────────────
+def pose_cheer(f, N):
+    t = (f - 1) / N * TAU
+    bounce = abs(math.sin(t * 2)) * 0.12
+    PB['Hips'].location = (0, 0, bounce)
+    PB['Chest'].rotation_euler = (-0.12, 0, 0)
+    PB['Head'].rotation_euler = (-0.18, 0, math.sin(t*3)*0.06)
+    # arms up and out (rotate about local Y to lift)
+    lift = -1.9 + math.sin(t * 3) * 0.18
+    PB['UpperArmL'].rotation_euler = (0, 0, -lift)
+    PB['UpperArmR'].rotation_euler = (0, 0,  lift)
+    PB['ForearmL'].rotation_euler = (-0.3, 0, 0)
+    PB['ForearmR'].rotation_euler = (-0.3, 0, 0)
+
+# ── VICTORY 2: Fist pump — right arm pumps down/up, little hop ─────────────────
+def pose_pump(f, N):
+    t = (f - 1) / N * TAU
+    pump = math.sin(t * 3)
+    PB['Hips'].location = (0, 0, abs(math.sin(t * 3)) * 0.08)
+    PB['Chest'].rotation_euler = (-0.06, 0, 0.08)
+    PB['Head'].rotation_euler = (-0.1, 0, 0.05)
+    # right arm bent, pumping
+    PB['UpperArmR'].rotation_euler = (0, 0, 1.2 + pump * 0.5)
+    PB['ForearmR'].rotation_euler = (-1.6 - pump * 0.3, 0, 0)
+    # left arm relaxed at side
+    PB['UpperArmL'].rotation_euler = (0.1, 0, 0)
+
+# ── VICTORY 3: Clap — hands meet in front repeatedly ──────────────────────────
+def pose_clap(f, N):
+    t = (f - 1) / N * TAU
+    clap = (math.sin(t * 4) + 1) / 2   # 0..1
+    PB['Hips'].location = (0, 0, abs(math.sin(t * 2)) * 0.05)
+    PB['Head'].rotation_euler = (-0.08, 0, 0)
+    PB['Chest'].rotation_euler = (-0.05, 0, 0)
+    # arms forward, forearms swing together
+    PB['UpperArmL'].rotation_euler = (-1.1, 0, -0.5)
+    PB['UpperArmR'].rotation_euler = (-1.1, 0,  0.5)
+    PB['ForearmL'].rotation_euler = (-0.6, 0,  0.5 - clap*0.5)
+    PB['ForearmR'].rotation_euler = (-0.6, 0, -0.5 + clap*0.5)
+
+# ── WRONG 1: Head shake "no" — slump, head turns side to side ─────────────────
+def pose_shake(f, N):
+    t = (f - 1) / N * TAU
+    PB['Chest'].rotation_euler = (0.12, 0, 0)       # slump forward
+    PB['Hips'].location = (0, 0, -0.04)
+    PB['Head'].rotation_euler = (0.08, 0, math.sin(t * 3) * 0.35)  # shake no
+    PB['UpperArmL'].rotation_euler = (0.15, 0, 0)
+    PB['UpperArmR'].rotation_euler = (0.15, 0, 0)
+
+# ── WRONG 2: Slump — shoulders drop, head hangs ───────────────────────────────
+def pose_slump(f, N):
+    t = (f - 1) / N * TAU
+    drop = min(1.0, f / (N * 0.4))                  # ease into the slump
+    settle = math.sin(t * 1.5) * 0.02
+    PB['Chest'].rotation_euler = (0.30 * drop, 0, 0)
+    PB['Hips'].location = (0, 0, -0.10 * drop)
+    PB['Head'].rotation_euler = (0.45 * drop + settle, 0, 0)
+    PB['UpperArmL'].rotation_euler = (0.25 * drop, 0, 0)
+    PB['UpperArmR'].rotation_euler = (0.25 * drop, 0, 0)
+    PB['ForearmL'].rotation_euler = (0.2 * drop, 0, 0)
+    PB['ForearmR'].rotation_euler = (0.2 * drop, 0, 0)
+
+# ── WRONG 3: Shrug — arms out, palms up, head tilt ────────────────────────────
+def pose_shrug(f, N):
+    t = (f - 1) / N * TAU
+    hold = min(1.0, f / (N * 0.35))
+    wobble = math.sin(t * 2) * 0.05
+    PB['Head'].rotation_euler = (0.05, 0, 0.18 + wobble)
+    PB['Chest'].rotation_euler = (0.04, 0, 0)
+    # upper arms lift out to the sides a little, forearms rotate palms-up
+    PB['UpperArmL'].rotation_euler = (0, 0, -0.6 * hold)
+    PB['UpperArmR'].rotation_euler = (0, 0,  0.6 * hold)
+    PB['ForearmL'].rotation_euler = (-1.0 * hold, 0, 0)
+    PB['ForearmR'].rotation_euler = (-1.0 * hold, 0, 0)
+
+make_action('Idle',    120, pose_idle)
+make_action('Cheer',    60, pose_cheer)
+make_action('Pump',     60, pose_pump)
+make_action('Clap',     60, pose_clap)
+make_action('Shake',    60, pose_shake)
+make_action('Slump',    70, pose_slump)
+make_action('Shrug',    70, pose_shrug)
 
 bpy.ops.object.mode_set(mode='OBJECT')
-if rig.animation_data and rig.animation_data.action:
-    rig.animation_data.action.name = 'Idle'
 
 # ── Export GLB ────────────────────────────────────────────────────────────────
 bpy.ops.export_scene.gltf(
     filepath=OUT,
     export_format='GLB',
     export_animations=True,
+    export_animation_mode='ACTIONS',
+    export_nla_strips=True,
     export_skins=True,
     export_morph=False,
     export_apply=False,

@@ -1112,6 +1112,7 @@ function buildAwardButtons(val) {
       showScorePop(val, e.clientX, e.clientY);
       soundCorrect();
       launchConfetti();
+      if (window.hostCelebrate) window.hostCelebrate();
       closeModal();
     };
     const wrong = document.createElement('button');
@@ -1121,6 +1122,7 @@ function buildAwardButtons(val) {
       adjustScore(p.name, -val);
       showScorePop(-val, e.clientX, e.clientY);
       soundWrong();
+      if (window.hostDisappoint) window.hostDisappoint();
     };
     row.append(name, correct, wrong);
     container.appendChild(row);
@@ -1328,6 +1330,11 @@ document.getElementById('edit-save-btn').onclick = () => {
   // Load host GLB
   let mixer = null;
   let idleAction = null;
+  const actions = {};            // name -> AnimationAction
+  let currentOneShot = null;
+
+  const VICTORY_CLIPS = ['Cheer', 'Pump', 'Clap'];
+  const WRONG_CLIPS   = ['Shake', 'Slump', 'Shrug'];
 
   const loader = new THREE.GLTFLoader();
   loader.load('./host.glb',
@@ -1356,13 +1363,25 @@ document.getElementById('edit-save-btn').onclick = () => {
 
       scene.add(model);
 
-      // Play idle animation if present
+      // Register all animation clips
       if (gltf.animations && gltf.animations.length > 0) {
         mixer = new THREE.AnimationMixer(model);
-        const clip = gltf.animations.find(a => a.name === 'Idle') || gltf.animations[0];
-        idleAction = mixer.clipAction(clip);
+        gltf.animations.forEach(clip => {
+          actions[clip.name] = mixer.clipAction(clip);
+        });
+        idleAction = actions['Idle'] || mixer.clipAction(gltf.animations[0]);
         idleAction.setLoop(THREE.LoopRepeat, Infinity);
         idleAction.play();
+
+        // When a one-shot finishes, fade back to idle
+        mixer.addEventListener('finished', () => {
+          if (currentOneShot) {
+            idleAction.reset();
+            idleAction.fadeIn(0.3).play();
+            currentOneShot.fadeOut(0.3);
+            currentOneShot = null;
+          }
+        });
       }
 
       document.getElementById('host-label').textContent = 'Your Host';
@@ -1370,6 +1389,29 @@ document.getElementById('edit-save-btn').onclick = () => {
     undefined,
     (err) => { console.warn('GLB load error:', err); }
   );
+
+  // Play a one-shot reaction clip by name, then return to idle.
+  function playReaction(name) {
+    const action = actions[name];
+    if (!action || !mixer) return;
+    if (currentOneShot) currentOneShot.fadeOut(0.15);
+    action.reset();
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.fadeIn(0.2).play();
+    if (idleAction) idleAction.fadeOut(0.2);
+    currentOneShot = action;
+  }
+
+  // Expose globally so the game logic can trigger reactions
+  window.hostCelebrate = () => {
+    const pick = VICTORY_CLIPS[Math.floor(Math.random() * VICTORY_CLIPS.length)];
+    playReaction(pick);
+  };
+  window.hostDisappoint = () => {
+    const pick = WRONG_CLIPS[Math.floor(Math.random() * WRONG_CLIPS.length)];
+    playReaction(pick);
+  };
 
   // Resize
   function resize() {
