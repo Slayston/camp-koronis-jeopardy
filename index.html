@@ -1475,12 +1475,14 @@ function liftHost() {
   hp.style.width = r.width + 'px';
   hp.style.height = r.height + 'px';
   hp.classList.add('lifted');
+  if (window.hostLit) window.hostLit(true);
 }
 function dropHost() {
   const hp = document.getElementById('host-panel');
   hp.classList.remove('lifted');
   hp.style.position = '';
   hp.style.top = hp.style.left = hp.style.width = hp.style.height = '';
+  if (window.hostLit) window.hostLit(false);
 }
 
 function buildAwardButtons(val) {
@@ -1802,7 +1804,8 @@ document.getElementById('edit-save-btn').onclick = () => {
   camera.lookAt(0, 1.5, 0);
 
   // Lights
-  scene.add(new THREE.AmbientLight(0x203030, 1.2));
+  const ambient = new THREE.AmbientLight(0x203030, 1.2);
+  scene.add(ambient);
   const keyLight = new THREE.DirectionalLight(0xfff5e0, 1.6);
   keyLight.position.set(2, 5, 4);
   keyLight.castShadow = true;
@@ -1839,6 +1842,18 @@ document.getElementById('edit-save-btn').onclick = () => {
   const campLight = new THREE.PointLight(0xff7a22, 2.4, 10);
   campLight.position.set(0, 0.65, 3.2);
   scene.add(campLight);
+
+  // Spotlight that comes on while a clue card is up, so the host reads clearly
+  // against the darkened overlay instead of fading into the background.
+  const spotLight = new THREE.PointLight(0xfff2dd, 0, 16);
+  spotLight.position.set(0, 3.2, 5.5);
+  scene.add(spotLight);
+  // Brighten / dim the whole host scene on demand
+  window.hostLit = (on) => {
+    spotLight.intensity = on ? 4.0 : 0;
+    keyLight.intensity  = on ? 2.8 : 1.6;
+    ambient.intensity   = on ? 2.0 : 1.2;
+  };
 
   // Ground
   const ground = new THREE.Mesh(
