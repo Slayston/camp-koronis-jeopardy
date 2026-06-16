@@ -105,11 +105,13 @@ ear_R = sphere('EarR', ( 0.65, 0.02, 2.06), (0.12, 0.09, 0.14), M_SKIN)
 parts += [ear_L, ear_R]
 
 # -- Hair: thin on top, full on sides & back (gray-white) --
-hair_R    = sphere('HairR',    (-0.56, -0.04, 2.22), (0.24, 0.24, 0.30), M_HAIR)
-hair_L    = sphere('HairL',    ( 0.56, -0.04, 2.22), (0.24, 0.24, 0.30), M_HAIR)
-hair_back = sphere('HairBack', ( 0.00, -0.48, 2.18), (0.40, 0.20, 0.32), M_HAIR)
-hair_top  = sphere('HairTop',  ( 0.00, -0.08, 2.60), (0.44, 0.40, 0.10), M_HAIR)  # thin wisp on top
-parts += [hair_R, hair_L, hair_back, hair_top]
+hair_R     = sphere('HairR',     (-0.56, -0.04, 2.24), (0.26, 0.26, 0.34), M_HAIR)
+hair_L     = sphere('HairL',     ( 0.56, -0.04, 2.24), (0.26, 0.26, 0.34), M_HAIR)
+hair_back  = sphere('HairBack',  ( 0.00, -0.48, 2.20), (0.44, 0.22, 0.36), M_HAIR)
+hair_top   = sphere('HairTop',   ( 0.00, -0.06, 2.56), (0.56, 0.52, 0.20), M_HAIR)  # fuller crown
+hair_topF  = sphere('HairTopF',  ( 0.00,  0.18, 2.46), (0.48, 0.30, 0.16), M_HAIR)  # front fringe
+hair_crown = sphere('HairCrown', ( 0.00, -0.20, 2.62), (0.40, 0.40, 0.14), M_HAIR)  # back crown
+parts += [hair_R, hair_L, hair_back, hair_top, hair_topF, hair_crown]
 
 # -- Beard (big fluffy white) --
 beard_main  = sphere('BeardMain',  ( 0.00,  0.26, 1.80), (0.50, 0.28, 0.42), M_BEARD)
@@ -129,18 +131,16 @@ eye_R = sphere('EyeR', ( 0.22, 0.56, 2.16), (0.09, 0.07, 0.09), M_EYE)
 # Eye shine
 shine_L = sphere('ShineL', (-0.19, 0.60, 2.19), (0.03, 0.03, 0.03), M_WHITE)
 shine_R = sphere('ShineR', ( 0.19, 0.60, 2.19), (0.03, 0.03, 0.03), M_WHITE)
-# Cheek blush
-cheek_L = sphere('CheekL', (-0.40, 0.50, 2.02), (0.18, 0.10, 0.06), M_BLUSH)
-cheek_R = sphere('CheekR', ( 0.40, 0.50, 2.02), (0.18, 0.10, 0.06), M_BLUSH)
-parts += [eye_L, eye_R, shine_L, shine_R, cheek_L, cheek_R]
+parts += [eye_L, eye_R, shine_L, shine_R]
 
 # -- Glasses (round wire frames — character's signature feature) --
-# Two torus lenses, a bridge, and temples
-gl_L = torus('GlassL', (-0.22, 0.57, 2.16), (math.pi/2, 0, 0), 0.13, 0.022, M_GLASS)
-gl_R = torus('GlassR', ( 0.22, 0.57, 2.16), (math.pi/2, 0, 0), 0.13, 0.022, M_GLASS)
-bridge   = cylinder('GlassBridge',  (0,    0.59, 2.16), (0.018, 0.018, 0.09), (0, math.pi/2, 0), M_GLASS)
-temple_L = cylinder('TempleL', (-0.48, 0.40, 2.16), (0.015, 0.015, 0.20), (0, math.pi/2, 0.28), M_GLASS)
-temple_R = cylinder('TempleR', ( 0.48, 0.40, 2.16), (0.015, 0.015, 0.20), (0, math.pi/2,-0.28), M_GLASS)
+# Two torus lenses, a bridge, and temples. Pushed forward (higher Y) so they
+# sit clearly in front of the face instead of clipping into the skin.
+gl_L = torus('GlassL', (-0.22, 0.70, 2.16), (math.pi/2, 0, 0), 0.13, 0.022, M_GLASS)
+gl_R = torus('GlassR', ( 0.22, 0.70, 2.16), (math.pi/2, 0, 0), 0.13, 0.022, M_GLASS)
+bridge   = cylinder('GlassBridge',  (0,    0.72, 2.16), (0.018, 0.018, 0.09), (0, math.pi/2, 0), M_GLASS)
+temple_L = cylinder('TempleL', (-0.50, 0.45, 2.16), (0.015, 0.015, 0.24), (0, math.pi/2, 0.32), M_GLASS)
+temple_R = cylinder('TempleR', ( 0.50, 0.45, 2.16), (0.015, 0.015, 0.24), (0, math.pi/2,-0.32), M_GLASS)
 parts += [gl_L, gl_R, bridge, temple_L, temple_R]
 
 # -- Arms --
@@ -239,30 +239,6 @@ for f in range(1, FRAMES + 1):
 bpy.ops.object.mode_set(mode='OBJECT')
 if rig.animation_data and rig.animation_data.action:
     rig.animation_data.action.name = 'Idle'
-
-# ── Wave animation (frames 121–180) ───────────────────────────────────────────
-bpy.context.view_layer.objects.active = rig
-bpy.ops.object.mode_set(mode='POSE')
-S.frame_end = 180
-
-for f in range(121, 181):
-    bpy.context.scene.frame_set(f)
-    t = (f - 121) / 60 * 2 * math.pi
-
-    # Right arm raises and waves
-    PB['UpperArmR'].rotation_euler = (-0.9, 0, -0.3)
-    PB['ForearmR'].rotation_euler  = (-0.3 + math.sin(t * 2) * 0.4, 0, 0)
-    PB['Head'].rotation_euler      = (0.05, 0, -0.12)  # looks toward raised arm
-
-    PB['UpperArmR'].keyframe_insert('rotation_euler', frame=f)
-    PB['ForearmR'].keyframe_insert('rotation_euler', frame=f)
-    PB['Head'].keyframe_insert('rotation_euler', frame=f)
-
-    # Left arm stays down
-    PB['UpperArmL'].rotation_euler = (0, 0, 0)
-    PB['UpperArmL'].keyframe_insert('rotation_euler', frame=f)
-
-bpy.ops.object.mode_set(mode='OBJECT')
 
 # ── Export GLB ────────────────────────────────────────────────────────────────
 bpy.ops.export_scene.gltf(
