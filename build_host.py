@@ -322,10 +322,11 @@ def pose_clap(f, N):
     # upper arms raised to the side a bit, then forearms swing inward to meet
     PB['UpperArmL'].rotation_euler = (0, 0,  0.85)
     PB['UpperArmR'].rotation_euler = (0, 0, -0.85)
-    # forearm X bends them forward so hands sit in FRONT of the body;
+    # forearm +X bends them forward so hands sit in FRONT of the body (the glTF
+    # axis flip means +X here is what reads as "toward the camera" in the app);
     # Z swings them toward the centre to clap.
-    PB['ForearmL'].rotation_euler = (-1.3, 0,  0.55 - clap * 0.5)
-    PB['ForearmR'].rotation_euler = (-1.3, 0, -0.55 + clap * 0.5)
+    PB['ForearmL'].rotation_euler = (1.3, 0,  0.55 - clap * 0.5)
+    PB['ForearmR'].rotation_euler = (1.3, 0, -0.55 + clap * 0.5)
 
 # ── WRONG 1: Head shake "no" — slump, head turns side to side ─────────────────
 def pose_shake(f, N):
