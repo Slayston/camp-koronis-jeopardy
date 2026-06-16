@@ -275,18 +275,26 @@ def pose_cheer(f, N):
     PB['ForearmL'].rotation_euler = (-0.3, 0, 0)
     PB['ForearmR'].rotation_euler = (-0.3, 0, 0)
 
-# ── VICTORY 2: Fist pump — right arm pumps down/up, little hop ─────────────────
-def pose_pump(f, N):
+# ── VICTORY 2: Jump — leaps up with both hands straight in the air ────────────
+def pose_jump(f, N):
     t = (f - 1) / N * TAU
-    pump = math.sin(t * 3)
-    PB['Hips'].location = (0, 0, abs(math.sin(t * 3)) * 0.08)
-    PB['Chest'].rotation_euler = (-0.06, 0, 0.08)
-    PB['Head'].rotation_euler = (-0.1, 0, 0.05)
-    # right arm bent, pumping
-    PB['UpperArmR'].rotation_euler = (0, 0, 1.2 + pump * 0.5)
-    PB['ForearmR'].rotation_euler = (-1.6 - pump * 0.3, 0, 0)
-    # left arm relaxed at side
-    PB['UpperArmL'].rotation_euler = (0.1, 0, 0)
+    # two clear hops over the clip
+    hop = abs(math.sin(t * 2)) * 0.28
+    PB['Hips'].location = (0, 0, hop)
+    # legs tuck slightly at the top of each hop
+    tuck = hop / 0.28
+    PB['ThighL'].rotation_euler = (0.25 * tuck, 0, 0)
+    PB['ThighR'].rotation_euler = (0.25 * tuck, 0, 0)
+    PB['ShinL'].rotation_euler = (-0.3 * tuck, 0, 0)
+    PB['ShinR'].rotation_euler = (-0.3 * tuck, 0, 0)
+    PB['Chest'].rotation_euler = (-0.1, 0, 0)
+    PB['Head'].rotation_euler = (-0.2, 0, 0)
+    # both arms straight up overhead
+    raise_amt = -2.0 + math.sin(t * 4) * 0.12
+    PB['UpperArmL'].rotation_euler = (0, 0, -raise_amt)
+    PB['UpperArmR'].rotation_euler = (0, 0,  raise_amt)
+    PB['ForearmL'].rotation_euler = (-0.15, 0, 0)
+    PB['ForearmR'].rotation_euler = (-0.15, 0, 0)
 
 # ── VICTORY 3: Clap — hands meet in front repeatedly ──────────────────────────
 def pose_clap(f, N):
@@ -338,7 +346,7 @@ def pose_shrug(f, N):
 
 make_action('Idle',    120, pose_idle)
 make_action('Cheer',    60, pose_cheer)
-make_action('Pump',     60, pose_pump)
+make_action('Jump',     60, pose_jump)
 make_action('Clap',     60, pose_clap)
 make_action('Shake',    60, pose_shake)
 make_action('Slump',    70, pose_slump)
